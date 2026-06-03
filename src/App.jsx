@@ -1108,23 +1108,9 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
     >
       <style>
         {`
-          @keyframes mobile-mobius-breathe {
-            0%, 100% { transform: translateY(0) rotate(-1.2deg) scale(1); opacity: 0.9; }
-            50% { transform: translateY(10px) rotate(1.6deg) scale(1.025); opacity: 1; }
-          }
-
-          @keyframes mobile-mobius-dash {
-            to { stroke-dashoffset: -46; }
-          }
-
           @keyframes mobile-card-float {
             0%, 100% { filter: brightness(0.98) drop-shadow(0 16px 28px rgba(56,189,248,0.08)); }
             50% { filter: brightness(1.1) drop-shadow(0 24px 42px rgba(125,211,252,0.18)); }
-          }
-
-          @keyframes mobile-stage-drift {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-7px) scale(1.01); }
           }
         `}
       </style>
@@ -1133,11 +1119,8 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
         {String(activeIndex + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}
       </div>
 
-      <div
-        className="relative mx-auto h-[470px] w-full max-w-[430px] shrink-0"
-        style={{ animation: "mobile-stage-drift 7s ease-in-out infinite" }}
-      >
-        <div className="pointer-events-none absolute left-1/2 top-[96px] h-72 w-[128vw] max-w-[560px] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.055),rgba(255,255,255,0.018)_36%,transparent_72%)] blur-xl" />
+      <div className="relative mx-auto h-[470px] w-full max-w-[430px] shrink-0">
+        <div className="pointer-events-none absolute left-1/2 top-[112px] h-64 w-[118vw] max-w-[520px] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(137,195,230,0.058),rgba(56,84,105,0.026)_38%,transparent_72%)] blur-2xl" />
 
         <svg
           className="pointer-events-none absolute inset-x-1/2 top-0 h-full w-[128vw] max-w-[560px] -translate-x-1/2 overflow-visible"
@@ -1145,28 +1128,28 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
           aria-hidden="true"
         >
           <defs>
-            <linearGradient id="mobileMobiusRibbon" x1="42" y1="132" x2="350" y2="336" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="rgba(255,255,255,0.05)" />
-              <stop offset="0.18" stopColor="rgba(180,224,255,0.22)" />
-              <stop offset="0.42" stopColor="rgba(255,255,255,0.1)" />
-              <stop offset="0.55" stopColor="rgba(2,4,10,0.62)" />
-              <stop offset="0.72" stopColor="rgba(255,255,255,0.2)" />
-              <stop offset="1" stopColor="rgba(106,189,255,0.07)" />
+            <linearGradient id="mobileMobiusFace" x1="36" y1="162" x2="358" y2="316" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="rgba(11,21,28,0.34)" />
+              <stop offset="0.18" stopColor="rgba(205,229,238,0.2)" />
+              <stop offset="0.4" stopColor="rgba(255,255,255,0.085)" />
+              <stop offset="0.52" stopColor="rgba(2,4,10,0.82)" />
+              <stop offset="0.74" stopColor="rgba(220,238,246,0.19)" />
+              <stop offset="1" stopColor="rgba(7,16,23,0.36)" />
             </linearGradient>
-            <linearGradient id="mobileMobiusBack" x1="342" y1="130" x2="46" y2="340" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="rgba(255,255,255,0.045)" />
-              <stop offset="0.42" stopColor="rgba(255,255,255,0.13)" />
-              <stop offset="0.6" stopColor="rgba(3,7,13,0.7)" />
-              <stop offset="1" stopColor="rgba(255,255,255,0.06)" />
+            <linearGradient id="mobileMobiusUnderside" x1="352" y1="156" x2="38" y2="324" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="rgba(255,255,255,0.06)" />
+              <stop offset="0.34" stopColor="rgba(79,118,140,0.17)" />
+              <stop offset="0.56" stopColor="rgba(1,3,8,0.9)" />
+              <stop offset="1" stopColor="rgba(255,255,255,0.05)" />
             </linearGradient>
-            <linearGradient id="mobileMobiusEdge" x1="35" y1="168" x2="360" y2="292" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="rgba(255,255,255,0.2)" />
-              <stop offset="0.36" stopColor="rgba(255,255,255,0.72)" />
-              <stop offset="0.64" stopColor="rgba(123,210,255,0.34)" />
-              <stop offset="1" stopColor="rgba(255,255,255,0.18)" />
+            <linearGradient id="mobileMobiusRim" x1="42" y1="176" x2="356" y2="282" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="rgba(255,255,255,0.13)" />
+              <stop offset="0.3" stopColor="rgba(255,255,255,0.62)" />
+              <stop offset="0.58" stopColor="rgba(116,177,205,0.26)" />
+              <stop offset="1" stopColor="rgba(255,255,255,0.12)" />
             </linearGradient>
             <filter id="mobileMobiusGlow" x="-20%" y="-35%" width="140%" height="170%">
-              <feGaussianBlur stdDeviation="2.8" result="blur" />
+              <feGaussianBlur stdDeviation="3.2" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
@@ -1174,99 +1157,89 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
             </filter>
           </defs>
 
-          <g style={{ animation: "mobile-mobius-breathe 6.5s ease-in-out infinite" }}>
-            <ellipse cx="195" cy="305" rx="174" ry="76" fill="none" stroke="rgba(255,255,255,0.045)" strokeWidth="1" />
-            <ellipse cx="195" cy="315" rx="124" ry="50" fill="none" stroke="rgba(255,255,255,0.032)" strokeWidth="1" />
+          <g opacity="0.92">
+            <ellipse cx="195" cy="312" rx="164" ry="58" fill="none" stroke="rgba(170,214,236,0.035)" strokeWidth="0.8" />
+            <ellipse cx="195" cy="321" rx="110" ry="38" fill="none" stroke="rgba(255,255,255,0.022)" strokeWidth="0.8" />
             <path
-              d="M37 251 C84 153 135 137 194 237 C256 343 314 335 354 244 C309 132 255 136 195 244 C134 354 82 335 37 251"
-              fill="none"
-              stroke="rgba(0,0,0,0.86)"
-              strokeLinecap="round"
-              strokeWidth="62"
-            />
-            <path
-              d="M38 252 C82 147 135 133 195 238 C257 346 312 339 354 244"
-              fill="none"
-              stroke="url(#mobileMobiusRibbon)"
-              strokeLinecap="round"
-              strokeWidth="42"
-            />
-            <path
-              d="M354 244 C310 139 255 133 195 244 C135 353 82 341 38 252"
-              fill="none"
-              stroke="url(#mobileMobiusBack)"
-              strokeLinecap="round"
-              strokeWidth="42"
-            />
-            <path
-              d="M38 252 C82 147 135 133 195 238 C257 346 312 339 354 244"
-              fill="none"
-              filter="url(#mobileMobiusGlow)"
-              stroke="url(#mobileMobiusEdge)"
-              strokeLinecap="round"
-              strokeWidth="2"
-            />
-            <path
-              d="M354 244 C310 139 255 133 195 244 C135 353 82 341 38 252"
-              fill="none"
-              stroke="rgba(255,255,255,0.16)"
-              strokeLinecap="round"
-              strokeWidth="1.45"
-            />
-            <path
-              d="M38 252 C82 147 135 133 195 238 C257 346 312 339 354 244 C310 139 255 133 195 244 C135 353 82 341 38 252"
-              fill="none"
-              stroke="rgba(255,255,255,0.16)"
-              strokeDasharray="1 11"
-              strokeLinecap="round"
-              strokeWidth="1"
-              style={{ animation: "mobile-mobius-dash 4.8s linear infinite" }}
-            />
-            <path
-              d="M160 191 C175 217 187 236 195 238 C207 240 222 271 237 306"
+              d="M35 258 C80 166 132 144 195 231 C260 318 313 307 360 222 C310 147 256 161 195 244 C136 324 82 318 35 258"
               fill="none"
               stroke="rgba(0,0,0,0.88)"
               strokeLinecap="round"
-              strokeWidth="28"
+              strokeWidth="72"
             />
             <path
-              d="M160 191 C175 217 187 236 195 238 C207 240 222 271 237 306"
+              d="M35 258 C80 166 132 144 195 231 C260 318 313 307 360 222"
               fill="none"
-              stroke="rgba(255,255,255,0.34)"
+              stroke="url(#mobileMobiusFace)"
               strokeLinecap="round"
-              strokeWidth="1.5"
+              strokeWidth="48"
             />
             <path
-              d="M58 248 C70 261 80 280 87 306 M82 178 C99 185 115 206 126 232 M137 137 C152 151 166 174 178 204 M222 272 C232 300 248 324 268 340 M274 340 C291 349 313 342 334 319 M309 151 C326 167 340 196 350 235"
+              d="M360 222 C310 147 256 161 195 244 C136 324 82 318 35 258"
               fill="none"
-              stroke="rgba(255,255,255,0.2)"
+              stroke="url(#mobileMobiusUnderside)"
+              strokeLinecap="round"
+              strokeWidth="48"
+            />
+            <path
+              d="M35 258 C80 166 132 144 195 231 C260 318 313 307 360 222"
+              fill="none"
+              filter="url(#mobileMobiusGlow)"
+              stroke="url(#mobileMobiusRim)"
+              strokeLinecap="round"
+              strokeWidth="1.8"
+            />
+            <path
+              d="M360 222 C310 147 256 161 195 244 C136 324 82 318 35 258"
+              fill="none"
+              stroke="rgba(255,255,255,0.12)"
+              strokeLinecap="round"
+              strokeWidth="1.25"
+            />
+            <path
+              d="M35 258 C80 166 132 144 195 231 C260 318 313 307 360 222 C310 147 256 161 195 244 C136 324 82 318 35 258"
+              fill="none"
+              stroke="rgba(255,255,255,0.09)"
+              strokeDasharray="1 13"
               strokeLinecap="round"
               strokeWidth="0.85"
             />
             <path
-              d="M57 251 C94 158 142 153 195 238 C250 331 302 326 336 245"
+              d="M158 199 C174 221 187 232 195 231 C207 230 222 242 238 265"
               fill="none"
-              stroke="rgba(255,255,255,0.08)"
+              stroke="rgba(0,0,0,0.92)"
+              strokeLinecap="round"
+              strokeWidth="34"
+            />
+            <path
+              d="M158 199 C174 221 187 232 195 231 C207 230 222 242 238 265"
+              fill="none"
+              stroke="rgba(255,255,255,0.3)"
+              strokeLinecap="round"
+              strokeWidth="1.45"
+            />
+            <path
+              d="M64 253 C80 264 94 282 105 304 M92 196 C111 198 130 208 148 229 M138 154 C159 170 177 194 193 226 M219 239 C238 263 257 279 279 285 M287 284 C309 281 329 260 348 229 M288 165 C309 174 328 193 352 221"
+              fill="none"
+              stroke="rgba(255,255,255,0.18)"
+              strokeLinecap="round"
+              strokeWidth="0.75"
+            />
+            <path
+              d="M60 255 C98 181 142 168 195 231 C250 297 300 291 340 224"
+              fill="none"
+              stroke="rgba(255,255,255,0.075)"
               strokeLinecap="round"
               strokeWidth="0.9"
             />
             <path
-              d="M336 245 C302 156 250 153 195 244 C142 336 94 328 57 251"
+              d="M340 224 C301 170 250 176 195 244 C142 308 98 303 60 255"
               fill="none"
-              stroke="rgba(255,255,255,0.055)"
-              strokeDasharray="4 8"
+              stroke="rgba(255,255,255,0.05)"
+              strokeDasharray="5 10"
               strokeLinecap="round"
               strokeWidth="0.9"
             />
-            <circle r="3.5" fill="rgba(255,255,255,0.86)">
-              <animateMotion dur="5.4s" repeatCount="indefinite" path="M38 252 C82 147 135 133 195 238 C257 346 312 339 354 244 C310 139 255 133 195 244 C135 353 82 341 38 252" />
-            </circle>
-            <circle r="2.4" fill="rgba(190,230,255,0.7)">
-              <animateMotion begin="-2.7s" dur="5.4s" repeatCount="indefinite" path="M38 252 C82 147 135 133 195 238 C257 346 312 339 354 244 C310 139 255 133 195 244 C135 353 82 341 38 252" />
-            </circle>
-            <circle r="1.7" fill="rgba(255,255,255,0.55)">
-              <animateMotion begin="-1.3s" dur="7.2s" repeatCount="indefinite" path="M38 252 C82 147 135 133 195 238 C257 346 312 339 354 244 C310 139 255 133 195 244 C135 353 82 341 38 252" />
-            </circle>
           </g>
         </svg>
 
