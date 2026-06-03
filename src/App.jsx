@@ -1007,12 +1007,95 @@ function PageShell({ eyebrow, title, intro, children, aside }) {
   );
 }
 
+function createMobileMobiusVisual() {
+  const uSegments = 96;
+  const vSegments = 8;
+  const radius = 1.72;
+  const halfWidth = 0.72;
+  const centerX = 195;
+  const centerY = 248;
+  const scale = 79;
+
+  function project(u, v) {
+    const x = (radius + v * Math.cos(u / 2)) * Math.cos(u);
+    const y = v * Math.sin(u / 2);
+    const z = (radius + v * Math.cos(u / 2)) * Math.sin(u);
+    const depth = z * 0.9 + y * 0.34;
+
+    return {
+      x: centerX + x * scale,
+      y: centerY + z * 34 - y * 78,
+      depth,
+    };
+  }
+
+  function fmt(value) {
+    return Number(value.toFixed(2));
+  }
+
+  function pathFor(v, samples = 144) {
+    return Array.from({ length: samples + 1 }, (_, index) => {
+      const point = project((index / samples) * TAU, v);
+      return `${index === 0 ? "M" : "L"}${fmt(point.x)} ${fmt(point.y)}`;
+    }).join(" ");
+  }
+
+  const patches = [];
+
+  for (let i = 0; i < uSegments; i++) {
+    const u0 = (i / uSegments) * TAU;
+    const u1 = ((i + 1) / uSegments) * TAU;
+
+    for (let j = 0; j < vSegments; j++) {
+      const v0 = -halfWidth + (j / vSegments) * halfWidth * 2;
+      const v1 = -halfWidth + ((j + 1) / vSegments) * halfWidth * 2;
+      const corners = [project(u0, v0), project(u1, v0), project(u1, v1), project(u0, v1)];
+      const depth = corners.reduce((sum, point) => sum + point.depth, 0) / corners.length;
+      const depthLight = THREE.MathUtils.clamp((depth + 1.8) / 3.6, 0, 1);
+      const innerShade = 1 - Math.abs((j + 0.5) / vSegments - 0.5) * 1.25;
+      const tone = Math.round(42 + depthLight * 76 + innerShade * 24);
+      const alpha = 0.08 + depthLight * 0.16 + innerShade * 0.035;
+
+      patches.push({
+        key: `${i}-${j}`,
+        depth,
+        points: corners.map((point) => `${fmt(point.x)},${fmt(point.y)}`).join(" "),
+        fill: `rgba(${tone}, ${tone + 13}, ${tone + 20}, ${alpha.toFixed(3)})`,
+      });
+    }
+  }
+
+  patches.sort((a, b) => a.depth - b.depth);
+
+  const ribs = Array.from({ length: 18 }, (_, index) => {
+    const u = (index / 18) * TAU;
+    const samples = 10;
+
+    return Array.from({ length: samples + 1 }, (_, ribIndex) => {
+      const v = -halfWidth + (ribIndex / samples) * halfWidth * 2;
+      const point = project(u, v);
+      return `${ribIndex === 0 ? "M" : "L"}${fmt(point.x)} ${fmt(point.y)}`;
+    }).join(" ");
+  });
+
+  return {
+    patches,
+    ribs,
+    topEdge: pathFor(halfWidth),
+    bottomEdge: pathFor(-halfWidth),
+    centerPath: pathFor(0, 180),
+    innerPath: pathFor(halfWidth * 0.34),
+    outerPath: pathFor(-halfWidth * 0.34),
+  };
+}
+
 function ArcCarousel({ artworks, navigate, onSelect }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const touchRef = useRef({ active: false, startX: 0, startY: 0 });
   const pointerRef = useRef({ active: false, startX: 0, startY: 0 });
   const intervalRef = useRef(null);
   const count = artworks.length;
+  const mobileMobius = useMemo(() => createMobileMobiusVisual(), []);
 
   const advance = useCallback((direction) => {
     if (count === 0) return;
@@ -1128,20 +1211,6 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
           aria-hidden="true"
         >
           <defs>
-            <linearGradient id="mobileMobiusFace" x1="36" y1="162" x2="358" y2="316" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="rgba(11,21,28,0.34)" />
-              <stop offset="0.18" stopColor="rgba(205,229,238,0.2)" />
-              <stop offset="0.4" stopColor="rgba(255,255,255,0.085)" />
-              <stop offset="0.52" stopColor="rgba(2,4,10,0.82)" />
-              <stop offset="0.74" stopColor="rgba(220,238,246,0.19)" />
-              <stop offset="1" stopColor="rgba(7,16,23,0.36)" />
-            </linearGradient>
-            <linearGradient id="mobileMobiusUnderside" x1="352" y1="156" x2="38" y2="324" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="rgba(255,255,255,0.06)" />
-              <stop offset="0.34" stopColor="rgba(79,118,140,0.17)" />
-              <stop offset="0.56" stopColor="rgba(1,3,8,0.9)" />
-              <stop offset="1" stopColor="rgba(255,255,255,0.05)" />
-            </linearGradient>
             <linearGradient id="mobileMobiusRim" x1="42" y1="176" x2="356" y2="282" gradientUnits="userSpaceOnUse">
               <stop offset="0" stopColor="rgba(255,255,255,0.13)" />
               <stop offset="0.3" stopColor="rgba(255,255,255,0.62)" />
@@ -1160,86 +1229,70 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
           <g opacity="0.92">
             <ellipse cx="195" cy="312" rx="164" ry="58" fill="none" stroke="rgba(170,214,236,0.035)" strokeWidth="0.8" />
             <ellipse cx="195" cy="321" rx="110" ry="38" fill="none" stroke="rgba(255,255,255,0.022)" strokeWidth="0.8" />
+
+            {mobileMobius.patches.map((patch) => (
+              <polygon key={patch.key} points={patch.points} fill={patch.fill} />
+            ))}
+
             <path
-              d="M35 258 C80 166 132 144 195 231 C260 318 313 307 360 222 C310 147 256 161 195 244 C136 324 82 318 35 258"
-              fill="none"
-              stroke="rgba(0,0,0,0.88)"
-              strokeLinecap="round"
-              strokeWidth="72"
-            />
-            <path
-              d="M35 258 C80 166 132 144 195 231 C260 318 313 307 360 222"
-              fill="none"
-              stroke="url(#mobileMobiusFace)"
-              strokeLinecap="round"
-              strokeWidth="48"
-            />
-            <path
-              d="M360 222 C310 147 256 161 195 244 C136 324 82 318 35 258"
-              fill="none"
-              stroke="url(#mobileMobiusUnderside)"
-              strokeLinecap="round"
-              strokeWidth="48"
-            />
-            <path
-              d="M35 258 C80 166 132 144 195 231 C260 318 313 307 360 222"
+              d={mobileMobius.bottomEdge}
               fill="none"
               filter="url(#mobileMobiusGlow)"
               stroke="url(#mobileMobiusRim)"
               strokeLinecap="round"
-              strokeWidth="1.8"
+              strokeWidth="1.6"
             />
             <path
-              d="M360 222 C310 147 256 161 195 244 C136 324 82 318 35 258"
+              d={mobileMobius.topEdge}
               fill="none"
-              stroke="rgba(255,255,255,0.12)"
+              stroke="rgba(255,255,255,0.28)"
               strokeLinecap="round"
               strokeWidth="1.25"
             />
             <path
-              d="M35 258 C80 166 132 144 195 231 C260 318 313 307 360 222 C310 147 256 161 195 244 C136 324 82 318 35 258"
+              d={mobileMobius.centerPath}
               fill="none"
-              stroke="rgba(255,255,255,0.09)"
-              strokeDasharray="1 13"
-              strokeLinecap="round"
-              strokeWidth="0.85"
-            />
-            <path
-              d="M158 199 C174 221 187 232 195 231 C207 230 222 242 238 265"
-              fill="none"
-              stroke="rgba(0,0,0,0.92)"
-              strokeLinecap="round"
-              strokeWidth="34"
-            />
-            <path
-              d="M158 199 C174 221 187 232 195 231 C207 230 222 242 238 265"
-              fill="none"
-              stroke="rgba(255,255,255,0.3)"
-              strokeLinecap="round"
-              strokeWidth="1.45"
-            />
-            <path
-              d="M64 253 C80 264 94 282 105 304 M92 196 C111 198 130 208 148 229 M138 154 C159 170 177 194 193 226 M219 239 C238 263 257 279 279 285 M287 284 C309 281 329 260 348 229 M288 165 C309 174 328 193 352 221"
-              fill="none"
-              stroke="rgba(255,255,255,0.18)"
-              strokeLinecap="round"
-              strokeWidth="0.75"
-            />
-            <path
-              d="M60 255 C98 181 142 168 195 231 C250 297 300 291 340 224"
-              fill="none"
-              stroke="rgba(255,255,255,0.075)"
+              stroke="rgba(255,255,255,0.11)"
+              strokeDasharray="1 12"
               strokeLinecap="round"
               strokeWidth="0.9"
             />
             <path
-              d="M340 224 C301 170 250 176 195 244 C142 308 98 303 60 255"
+              d={mobileMobius.innerPath}
               fill="none"
-              stroke="rgba(255,255,255,0.05)"
+              stroke="rgba(255,255,255,0.055)"
+              strokeLinecap="round"
+              strokeWidth="0.9"
+            />
+            <path
+              d={mobileMobius.outerPath}
+              fill="none"
+              stroke="rgba(255,255,255,0.045)"
               strokeDasharray="5 10"
               strokeLinecap="round"
               strokeWidth="0.9"
             />
+
+            {mobileMobius.ribs.map((rib, index) => (
+              <path
+                key={index}
+                d={rib}
+                fill="none"
+                stroke="rgba(255,255,255,0.13)"
+                strokeLinecap="round"
+                strokeWidth="0.62"
+              />
+            ))}
+
+            <circle r="3.2" fill="rgba(255,255,255,0.78)">
+              <animateMotion dur="5.6s" repeatCount="indefinite" path={mobileMobius.centerPath} />
+            </circle>
+            <circle r="2.2" fill="rgba(187,226,244,0.62)">
+              <animateMotion begin="-2.8s" dur="5.6s" repeatCount="indefinite" path={mobileMobius.centerPath} />
+            </circle>
+            <circle r="1.55" fill="rgba(255,255,255,0.46)">
+              <animateMotion begin="-1.4s" dur="7.4s" repeatCount="indefinite" path={mobileMobius.centerPath} />
+            </circle>
           </g>
         </svg>
 
