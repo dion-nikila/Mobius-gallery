@@ -1008,13 +1008,13 @@ function PageShell({ eyebrow, title, intro, children, aside }) {
 }
 
 function createMobileMobiusVisual() {
-  const uSegments = 96;
-  const vSegments = 8;
+  const uSegments = 72;
+  const vSegments = 6;
   const radius = 1.72;
   const halfWidth = 0.72;
   const centerX = 195;
   const centerY = 248;
-  const scale = 79;
+  const scale = 86;
 
   function project(u, v) {
     const x = (radius + v * Math.cos(u / 2)) * Math.cos(u);
@@ -1033,7 +1033,7 @@ function createMobileMobiusVisual() {
     return Number(value.toFixed(2));
   }
 
-  function pathFor(v, samples = 144) {
+  function pathFor(v, samples = 120) {
     return Array.from({ length: samples + 1 }, (_, index) => {
       const point = project((index / samples) * TAU, v);
       return `${index === 0 ? "M" : "L"}${fmt(point.x)} ${fmt(point.y)}`;
@@ -1053,8 +1053,8 @@ function createMobileMobiusVisual() {
       const depth = corners.reduce((sum, point) => sum + point.depth, 0) / corners.length;
       const depthLight = THREE.MathUtils.clamp((depth + 1.8) / 3.6, 0, 1);
       const innerShade = 1 - Math.abs((j + 0.5) / vSegments - 0.5) * 1.25;
-      const tone = Math.round(42 + depthLight * 76 + innerShade * 24);
-      const alpha = 0.08 + depthLight * 0.16 + innerShade * 0.035;
+      const tone = Math.round(46 + depthLight * 88 + innerShade * 28);
+      const alpha = 0.105 + depthLight * 0.19 + innerShade * 0.04;
 
       patches.push({
         key: `${i}-${j}`,
@@ -1141,13 +1141,13 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
   const dotStart = activeIndex - Math.floor(dotWindow / 2);
   const dotIndices = Array.from({ length: dotWindow }, (_, index) => mod(dotStart + index, count));
   const cardStyles = {
-    "-3": { angle: 30, width: 70, height: 94, opacity: 0.2, zIndex: 2, x: -168, top: 278 },
-    "-2": { angle: -28, width: 84, height: 114, opacity: 0.4, zIndex: 3, x: -128, top: 162 },
-    "-1": { angle: 11, width: 108, height: 146, opacity: 0.72, zIndex: 4, x: -70, top: 72 },
-    0: { angle: 0, width: 154, height: 206, opacity: 1, zIndex: 8, x: 0, top: 130 },
-    1: { angle: -11, width: 108, height: 146, opacity: 0.72, zIndex: 4, x: 70, top: 72 },
-    2: { angle: 28, width: 84, height: 114, opacity: 0.4, zIndex: 3, x: 128, top: 162 },
-    3: { angle: -30, width: 70, height: 94, opacity: 0.2, zIndex: 2, x: 168, top: 278 },
+    "-3": { angle: 28, width: 78, height: 106, opacity: 0.24, zIndex: 2, x: -186, top: 292 },
+    "-2": { angle: -24, width: 96, height: 130, opacity: 0.44, zIndex: 3, x: -146, top: 172 },
+    "-1": { angle: 10, width: 122, height: 164, opacity: 0.76, zIndex: 4, x: -84, top: 66 },
+    0: { angle: 0, width: 178, height: 238, opacity: 1, zIndex: 8, x: 0, top: 118 },
+    1: { angle: -10, width: 122, height: 164, opacity: 0.76, zIndex: 4, x: 84, top: 66 },
+    2: { angle: 24, width: 96, height: 130, opacity: 0.44, zIndex: 3, x: 146, top: 172 },
+    3: { angle: -28, width: 78, height: 106, opacity: 0.24, zIndex: 2, x: 186, top: 292 },
   };
 
   return (
@@ -1202,11 +1202,11 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
         {String(activeIndex + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}
       </div>
 
-      <div className="relative mx-auto h-[470px] w-full max-w-[430px] shrink-0">
-        <div className="pointer-events-none absolute left-1/2 top-[112px] h-64 w-[118vw] max-w-[520px] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(137,195,230,0.058),rgba(56,84,105,0.026)_38%,transparent_72%)] blur-2xl" />
+      <div className="relative mx-auto h-[500px] w-full max-w-[450px] shrink-0">
+        <div className="pointer-events-none absolute left-1/2 top-[112px] h-72 w-[124vw] max-w-[560px] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(137,195,230,0.07),rgba(56,84,105,0.034)_38%,transparent_72%)] blur-2xl" />
 
         <svg
-          className="pointer-events-none absolute inset-x-1/2 top-0 h-full w-[128vw] max-w-[560px] -translate-x-1/2 overflow-visible"
+          className="pointer-events-none absolute inset-x-1/2 top-0 h-full w-[138vw] max-w-[590px] -translate-x-1/2 overflow-visible"
           viewBox="0 0 390 470"
           aria-hidden="true"
         >
@@ -1325,8 +1325,12 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
                   transformOrigin: "bottom center",
                   transform: `translateX(${style.x}px) rotate(${style.angle}deg)`,
                   transition:
-                    "transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.35s ease, width 0.35s ease, height 0.35s ease",
-                  border: position === 0 ? "1px solid rgba(255,255,255,0.5)" : "1px solid rgba(255,255,255,0.08)",
+                    "transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.35s ease, width 0.35s ease, height 0.35s ease, box-shadow 0.35s ease",
+                  border: position === 0 ? "1px solid rgba(255,255,255,0.62)" : "1px solid rgba(255,255,255,0.08)",
+                  boxShadow:
+                    position === 0
+                      ? "0 28px 72px rgba(0,0,0,0.72), 0 0 0 1px rgba(180,220,240,0.14), 0 0 52px rgba(125,211,252,0.18)"
+                      : "0 18px 42px rgba(0,0,0,0.42)",
                   animation: position === 0 ? "mobile-card-float 3.8s ease-in-out infinite" : undefined,
                 }}
               >
