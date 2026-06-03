@@ -1,161 +1,59 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Environment, Line, useCursor } from "@react-three/drei";
+import { memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useFrame, useLoader } from "@react-three/fiber";
+import { Environment, Line, useCursor, useProgress } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 
-const artworks = [
-  {
-    title: "Fragile Dreamer",
-    year: "2026",
-    medium: "Oil, charcoal, digital glaze",
-    mood: "soft distortion / almost human",
-    palette: ["#201c1d", "#c9a47d", "#6d2b24", "#ece2d1"],
-    size: "36 x 48 in",
-    status: "Available",
-    price: "$2,400",
-    story:
-      "A portrait caught between sleep and signal, built from rubbed charcoal, thin oil glazes, and digital light passes.",
-    process:
-      "The figure was blocked in with loose graphite, then rebuilt through translucent color until the face felt almost remembered instead of observed.",
-    collection: "Dream States",
-  },
-  {
-    title: "Knuckle Velvet",
-    year: "2026",
-    medium: "Ink and acrylic",
-    mood: "tender but dangerous",
-    palette: ["#06080d", "#7c1320", "#d8b88a", "#171d2a"],
-    size: "24 x 36 in",
-    status: "Reserved",
-    price: "Private sale",
-    story:
-      "A study of softness under pressure, using clenched silhouettes, velvet reds, and scraped highlights.",
-    process:
-      "Ink was allowed to pool and bruise before acrylic marks were pulled across the surface with a dry brush.",
-    collection: "Body Weather",
-  },
-  {
-    title: "Room Without Edges",
-    year: "2025",
-    medium: "Graphite study",
-    mood: "memory loop",
-    palette: ["#111111", "#d9d3c8", "#76706b", "#2b2b2f"],
-    size: "18 x 24 in",
-    status: "Available",
-    price: "$900",
-    story:
-      "An interior drawing where the walls refuse to end, made for anyone who has felt a room become a memory.",
-    process:
-      "Layered graphite was erased back into soft seams, then tightened with architectural linework near the center.",
-    collection: "Quiet Rooms",
-  },
-  {
-    title: "Blue Hour Saint",
-    year: "2025",
-    medium: "Digital painting",
-    mood: "devotional / unreal",
-    palette: ["#091521", "#153e5c", "#d6c2a2", "#7d2f26"],
-    size: "Edition of 25",
-    status: "Prints open",
-    price: "From $180",
-    story:
-      "A luminous figure held inside dusk, designed as a devotional image for uncertain futures.",
-    process:
-      "Painted digitally from a monochrome value sketch, then finished with hand-built texture overlays.",
-    collection: "Blue Lit",
-  },
-  {
-    title: "Eclipse Animal",
-    year: "2026",
-    medium: "Mixed media",
-    mood: "wild silhouette",
-    palette: ["#0a0b0d", "#f0dcc2", "#a6602d", "#2a3139"],
-    size: "40 x 40 in",
-    status: "Available",
-    price: "$3,100",
-    story:
-      "A shadow creature crossing a bright field, halfway between omen, petroglyph, and stage light.",
-    process:
-      "The silhouette was cut from painted paper, scanned, enlarged, and worked back into with matte acrylic.",
-    collection: "Field Notes",
-  },
-  {
-    title: "Salt Cathedral",
-    year: "2024",
-    medium: "Watercolour + pencil",
-    mood: "quiet ritual",
-    palette: ["#17202a", "#c5d3d9", "#9a6a4d", "#f4efe6"],
-    size: "22 x 30 in",
-    status: "Sold",
-    price: "Commission similar",
-    story:
-      "A pale architectural dream about grief, tide marks, and the small ceremonies people make for themselves.",
-    process:
-      "Watercolour washes were built slowly and allowed to bloom, with pencil structure added only after drying.",
-    collection: "Quiet Rooms",
-  },
-  {
-    title: "Moth Logic",
-    year: "2025",
-    medium: "Ink wash",
-    mood: "drawn toward damage",
-    palette: ["#050608", "#b08e62", "#e8d7b2", "#3e2c23"],
-    size: "16 x 20 in",
-    status: "Available",
-    price: "$760",
-    story:
-      "A small nocturne about attraction, risk, and the strange intelligence of moving toward heat.",
-    process:
-      "Ink was diluted into five tonal families, then lifted with cloth to make the wings feel smoke-soft.",
-    collection: "Field Notes",
-  },
-  {
-    title: "Black Milk Hotel",
-    year: "2026",
-    medium: "Digital collage",
-    mood: "nostalgic surrealism",
-    palette: ["#0d1016", "#efdfbd", "#536c77", "#953e36"],
-    size: "Edition of 40",
-    status: "Prints open",
-    price: "From $140",
-    story:
-      "A fictional lobby where childhood color, old signage, and dream logic check in under the same name.",
-    process:
-      "Analog textures, painted signage, and generated fragments were composited into a single cinematic plate.",
-    collection: "Dream States",
-  },
-  {
-    title: "Little Apocalypse",
-    year: "2025",
-    medium: "Acrylic study",
-    mood: "small ending / bright wound",
-    palette: ["#15120f", "#e17833", "#38251f", "#f5c78d"],
-    size: "20 x 20 in",
-    status: "Available",
-    price: "$1,150",
-    story:
-      "A compact painting about endings that arrive quietly, with orange light doing most of the talking.",
-    process:
-      "Fast acrylic underpainting was sanded back, then glazed with warmer passages until the center pulsed.",
-    collection: "Body Weather",
-  },
-  {
-    title: "Tender Static",
-    year: "2024",
-    medium: "Pencil and digital colour",
-    mood: "half signal / half ghost",
-    palette: ["#0b0d12", "#bcc7c9", "#384659", "#e4d5c1"],
-    size: "Edition of 30",
-    status: "Prints open",
-    price: "From $120",
-    story:
-      "A quiet signal portrait about presence, absence, and how digital noise can still feel intimate.",
-    process:
-      "A pencil drawing was scanned at high resolution, colored in restrained layers, and left visibly imperfect.",
-    collection: "Blue Lit",
-  },
-];
+const artworkImageModules = import.meta.glob("../art/*.{avif,gif,jpeg,jpg,png,webp}", {
+  eager: true,
+  import: "default",
+  query: "?url",
+});
+
+const artworkThumbnailModules = import.meta.glob("../art/thumbnails/*.{avif,gif,jpeg,jpg,png,webp}", {
+  eager: true,
+  import: "default",
+  query: "?url",
+});
+
+function titleFromArtworkPath(path) {
+  const fileName = path.split("/").pop() ?? "Untitled";
+  return fileName
+    .replace(/\.[^.]+$/, "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function artworkFormatRank(path) {
+  const extension = path.split(".").pop()?.toLowerCase() ?? "";
+  return { webp: 0, avif: 1, jpg: 2, jpeg: 2, png: 3, gif: 4 }[extension] ?? 5;
+}
+
+const artworkEntries = Array.from(
+  Object.entries(artworkImageModules).reduce((selected, [path, image]) => {
+    const title = titleFromArtworkPath(path);
+    const current = selected.get(title);
+
+    if (!current || artworkFormatRank(path) < artworkFormatRank(current.path)) {
+      selected.set(title, { path, image, title });
+    }
+
+    return selected;
+  }, new Map()).values()
+).sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" }));
+
+const artworkThumbnails = new Map(
+  Object.entries(artworkThumbnailModules).map(([path, image]) => [titleFromArtworkPath(path), image])
+);
+
+const artworks = artworkEntries.map(({ image, title }) => ({
+  title,
+  image,
+  thumbnail: artworkThumbnails.get(title) ?? image,
+  year: "2026",
+  medium: "Original artwork",
+}));
 
 const studioNotes = [
   {
@@ -185,9 +83,6 @@ const services = [
   "Album, book, and campaign imagery",
 ];
 
-const collections = ["All", ...new Set(artworks.map((art) => art.collection))];
-const availabilityFilters = ["All", "Available", "Prints open", "Reserved", "Sold"];
-
 const routes = [
   { path: "/", label: "home" },
   { path: "/work", label: "work" },
@@ -195,6 +90,9 @@ const routes = [
   { path: "/journal", label: "journal" },
   { path: "/contact", label: "contact" },
 ];
+
+const CONTACT_EMAIL = "dionnikila330@gmail.com";
+const CONTACT_PHONE = "076702100";
 
 function normalizePath(pathname) {
   if (pathname === "/" || pathname === "") return "/";
@@ -215,12 +113,46 @@ function expFollow(speed, delta) {
   return 1 - Math.exp(-speed * Math.min(delta, 0.033));
 }
 
+function useDocumentVisibility() {
+  const [isVisible, setIsVisible] = useState(() => document.visibilityState !== "hidden");
+
+  useEffect(() => {
+    function syncVisibility() {
+      setIsVisible(document.visibilityState !== "hidden");
+    }
+
+    document.addEventListener("visibilitychange", syncVisibility);
+    return () => document.removeEventListener("visibilitychange", syncVisibility);
+  }, []);
+
+  return isVisible;
+}
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    function handler() {
+      setIsMobile(window.innerWidth < 768);
+    }
+
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+
+  return isMobile;
+}
+
 const TAU = Math.PI * 2;
 
 const STRIP_RADIUS = 2.66;
 const STRIP_HALF_WIDTH = 0.6;
-const PANEL_COUNT = 16;
+const PANEL_DENSITY_BASE = 16;
+const PANEL_ASPECT = 0.52 / 0.94;
 const IDLE_LOOP_SPEED = 0.022;
+const blockedRaycast = () => null;
 
 function mobiusPoint(u, v, radius = STRIP_RADIUS) {
   const half = u / 2;
@@ -314,80 +246,33 @@ function createRibs() {
   });
 }
 
-function createArtworkTexture(art, index) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 900;
-  canvas.height = 1400;
+function useArtworkTexture(image) {
+  const loadedTexture = useLoader(THREE.TextureLoader, image);
+  const texture = useMemo(() => {
+    const nextTexture = loadedTexture.clone();
+    const imageAspect =
+      loadedTexture.image?.width && loadedTexture.image?.height
+        ? loadedTexture.image.width / loadedTexture.image.height
+        : PANEL_ASPECT;
 
-  const ctx = canvas.getContext("2d");
-  const [a, b, c, d] = art.palette;
+    if (imageAspect > PANEL_ASPECT) {
+      nextTexture.repeat.set(PANEL_ASPECT / imageAspect, 1);
+      nextTexture.offset.set((1 - nextTexture.repeat.x) / 2, 0);
+    } else {
+      nextTexture.repeat.set(1, imageAspect / PANEL_ASPECT);
+      nextTexture.offset.set(0, (1 - nextTexture.repeat.y) / 2);
+    }
 
-  const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-  bg.addColorStop(0, d);
-  bg.addColorStop(0.32, b);
-  bg.addColorStop(0.68, c);
-  bg.addColorStop(1, a);
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+    nextTexture.colorSpace = THREE.SRGBColorSpace;
+    nextTexture.anisotropy = 12;
+    nextTexture.wrapS = THREE.ClampToEdgeWrapping;
+    nextTexture.wrapT = THREE.ClampToEdgeWrapping;
+    nextTexture.needsUpdate = true;
 
-  ctx.globalAlpha = 0.42;
-  for (let i = 0; i < 30; i++) {
-    ctx.beginPath();
-    const x = Math.sin(i * 13.7 + index) * 330 + 450;
-    const y = Math.cos(i * 8.9 + index * 2) * 560 + 700;
-    const r = 56 + ((i * 37 + index * 21) % 235);
-    ctx.fillStyle = i % 2 ? a : d;
-    ctx.ellipse(x, y, r * 0.78, r * 1.68, i * 0.7, 0, TAU);
-    ctx.fill();
-  }
+    return nextTexture;
+  }, [loadedTexture]);
 
-  ctx.globalAlpha = 0.35;
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 2;
-  for (let i = 0; i < 42; i++) {
-    ctx.beginPath();
-    ctx.moveTo((i * 77 + index * 33) % canvas.width, 0);
-    ctx.bezierCurveTo(
-      120 + ((i * 17) % 640),
-      330 + ((i * 31) % 780),
-      780 - ((i * 19) % 640),
-      520 + ((i * 29) % 800),
-      (i * 117 + index * 71) % canvas.width,
-      canvas.height
-    );
-    ctx.stroke();
-  }
-
-  const light = ctx.createRadialGradient(430, 500, 80, 450, 700, 780);
-  light.addColorStop(0, "rgba(255,255,255,0.22)");
-  light.addColorStop(0.45, "rgba(255,255,255,0.03)");
-  light.addColorStop(1, "rgba(0,0,0,0.46)");
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = light;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.fillStyle = "rgba(0,0,0,0.22)";
-  ctx.fillRect(72, 1130, 756, 150);
-  ctx.strokeStyle = "rgba(255,255,255,0.16)";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(72, 1130, 756, 150);
-
-  ctx.fillStyle = "rgba(255,255,255,0.96)";
-  ctx.font = "700 46px Inter, Arial, sans-serif";
-  ctx.fillText(art.title.toUpperCase(), 98, 1186, 700);
-
-  ctx.font = "400 26px Inter, Arial, sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.76)";
-  ctx.fillText(`${art.medium} · ${art.year}`, 100, 1230, 690);
-
-  ctx.font = "italic 26px Georgia, serif";
-  ctx.fillStyle = "rgba(255,255,255,0.68)";
-  ctx.fillText(art.mood, 100, 1268, 690);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 12;
-  texture.needsUpdate = true;
+  useEffect(() => () => texture.dispose(), [texture]);
 
   return texture;
 }
@@ -673,13 +558,18 @@ function ArtworkPanel({ index, count, art, motionRef, onSelect }) {
 
   useCursor(hovered);
 
-  const texture = useMemo(() => createArtworkTexture(art, index), [art, index]);
+  const texture = useArtworkTexture(art.thumbnail);
 
   useFrame((state, delta) => {
     if (!frame.current || !panel.current || !ghost.current) return;
 
     const safeDelta = Math.min(delta, 0.033);
     const motion = motionRef.current;
+    const panelIsBlocked = performance.now() < (motion.interactionBlockedUntil ?? 0);
+
+    panel.current.raycast = panelIsBlocked ? blockedRaycast : THREE.Mesh.prototype.raycast;
+    if (panelIsBlocked && hovered) setHovered(false);
+
     const base = ((index + 0.5) / count) * TAU;
     const u = mod(base + motion.progress, TAU);
     const mobius = mobiusFrame(u, 0, STRIP_RADIUS);
@@ -760,7 +650,9 @@ function ArtworkPanel({ index, count, art, motionRef, onSelect }) {
     }
 
     const intro = smoothstep(0.05, 2.1, state.clock.elapsedTime);
-    const targetScale = (hovered ? 1.2 : 0.76 + focus * 0.44) * (0.82 + intro * 0.18);
+    const densityScale = Math.min(1, Math.sqrt(PANEL_DENSITY_BASE / count));
+    const targetScale =
+      (hovered ? 1.2 : 0.76 + focus * 0.44) * (0.82 + intro * 0.18) * densityScale;
     const targetOpacity = (hovered ? 1 : 0.42 + focus * 0.58) * intro;
     const ghostOpacity = (hovered ? 0.08 : 0.035 + backness * 0.26) * intro;
     const ghostScale = 0.92 + backness * 0.08;
@@ -853,6 +745,7 @@ function ArtworkPanel({ index, count, art, motionRef, onSelect }) {
         onPointerOut={() => setHovered(false)}
         onClick={(e) => {
           e.stopPropagation();
+          if (performance.now() < (motionRef.current.interactionBlockedUntil ?? 0)) return;
           onSelect(art);
         }}
       >
@@ -870,15 +763,25 @@ function ArtworkPanel({ index, count, art, motionRef, onSelect }) {
   );
 }
 
-function Scene({ motionRef, onSelect }) {
+const MemoizedArtworkPanel = memo(ArtworkPanel);
+
+function Scene({ motionRef, onSelect, onProgress }) {
   const group = useRef(null);
+  const previousProgressIndex = useRef(-1);
 
   useFrame((state, delta) => {
     const safeDelta = Math.min(delta, 0.033);
     const motion = motionRef.current;
 
     motion.progress = mod(motion.progress + (IDLE_LOOP_SPEED + motion.velocity) * safeDelta, TAU);
-    motion.velocity = THREE.MathUtils.damp(motion.velocity, 0, 4.0, safeDelta);
+    motion.velocity *= Math.pow(0.92, safeDelta * 60);
+    if (Math.abs(motion.velocity) < 0.1) motion.velocity = 0;
+
+    const progressIndex = mod(Math.round((-motion.progress / TAU) * artworks.length), artworks.length);
+    if (progressIndex !== previousProgressIndex.current) {
+      previousProgressIndex.current = progressIndex;
+      onProgress(progressIndex);
+    }
 
     if (group.current) {
       const intro = smoothstep(0.05, 2.2, state.clock.elapsedTime);
@@ -920,20 +823,16 @@ function Scene({ motionRef, onSelect }) {
         <TwistAccent motionRef={motionRef} />
         <FlowBeads motionRef={motionRef} />
 
-        {Array.from({ length: PANEL_COUNT }).map((_, i) => {
-          const art = artworks[mod(i, artworks.length)];
-
-          return (
-            <ArtworkPanel
-              key={`art-${i}`}
-              index={i}
-              count={PANEL_COUNT}
-              art={art}
-              motionRef={motionRef}
-              onSelect={onSelect}
-            />
-          );
-        })}
+        {artworks.map((art, i) => (
+          <MemoizedArtworkPanel
+            key={art.title}
+            index={i}
+            count={artworks.length}
+            art={art}
+            motionRef={motionRef}
+            onSelect={onSelect}
+          />
+        ))}
       </group>
 
       <Environment preset="night" />
@@ -941,7 +840,22 @@ function Scene({ motionRef, onSelect }) {
   );
 }
 
-function ArtworkModal({ art, onClose, onInquire }) {
+const MemoizedScene = memo(Scene);
+
+function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
+  useEffect(() => {
+    if (!art) return undefined;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowLeft") onNavigate(-1);
+      if (event.key === "ArrowRight") onNavigate(1);
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [art, onClose, onNavigate]);
+
   return (
     <AnimatePresence>
       {art && (
@@ -950,102 +864,86 @@ function ArtworkModal({ art, onClose, onInquire }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
           onClick={onClose}
         >
           <motion.div
-            className="grid max-h-[92vh] w-full max-w-5xl grid-cols-1 overflow-y-auto rounded-lg border border-sky-200/25 bg-[#071423]/97 shadow-[0_0_100px_rgba(56,189,248,0.22)] md:grid-cols-[0.9fr_1.1fr]"
-            initial={{ y: 30, scale: 0.965, opacity: 0 }}
-            animate={{ y: 0, scale: 1, opacity: 1 }}
-            exit={{ y: 20, scale: 0.985, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 120, damping: 18 }}
+            className="relative grid max-h-[92vh] w-full max-w-6xl grid-cols-1 overflow-y-auto rounded-lg border border-sky-200/20 bg-[#071423]/97 shadow-[0_0_100px_rgba(56,189,248,0.18)] md:grid-cols-[1.35fr_0.65fr]"
+            initial={{ scale: 0.97, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.97, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative min-h-[430px] overflow-hidden">
-              <div
-                className="absolute inset-0 bg-cover bg-center"
-                style={{
-                  backgroundImage: `linear-gradient(135deg, ${art.palette.join(", ")})`,
-                }}
+            <button
+              type="button"
+              aria-label="Close artwork detail"
+              onClick={onClose}
+              className="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/55 text-xl leading-none text-white opacity-60 backdrop-blur-sm transition hover:opacity-100"
+            >
+              ×
+            </button>
+
+            <div className="relative min-h-[360px] overflow-hidden bg-black/65 md:min-h-[620px]">
+              <img
+                src={art.image}
+                alt={art.title}
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-contain object-center"
               />
 
-              <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(125,211,252,0.16),rgba(56,189,248,0.06),transparent_58%)]" />
-              <div className="absolute inset-0 shadow-[inset_0_0_90px_rgba(125,211,252,0.18)]" />
-              <div className="absolute left-8 top-8 rounded-lg border border-white/20 bg-black/30 px-4 py-3 backdrop-blur-xl">
-                <div className="text-[11px] uppercase tracking-[0.28em] text-sky-100/60">
-                  {art.collection}
-                </div>
-                <div className="mt-2 text-sm text-white/80">{art.size}</div>
-              </div>
+              <div className="absolute inset-0 shadow-[inset_0_0_90px_rgba(125,211,252,0.10)]" />
             </div>
 
-            <div className="relative flex flex-col justify-between bg-[linear-gradient(180deg,rgba(10,24,39,0.96),rgba(6,17,30,0.98))] p-8 md:p-10">
+            <div className="relative flex flex-col justify-between bg-[linear-gradient(180deg,rgba(10,24,39,0.96),rgba(6,17,30,0.98))] p-10">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(125,211,252,0.10),transparent_32%)]" />
 
               <div className="relative">
-                <div className="mb-4 flex items-center gap-3 text-xs uppercase tracking-[0.45em] text-sky-100/60">
+                <div className="mb-4 flex items-center gap-3 text-xs uppercase tracking-[0.22em] text-sky-100/45">
                   <span className="h-px w-10 bg-sky-200/50" />
                   selected work
                 </div>
 
-                <h2 className="text-4xl font-semibold tracking-tight text-white md:text-6xl">
+                <h2 className="text-4xl font-semibold leading-[1.15] tracking-tight text-white md:text-6xl">
                   {art.title}
                 </h2>
 
-                <div className="mt-5 text-sm uppercase tracking-[0.28em] text-sky-100/48">
+                <div className="mt-5 text-[13px] uppercase tracking-[0.1em] text-sky-100/50">
                   {art.year} · {art.medium}
                 </div>
 
-                <p className="mt-8 max-w-xl text-lg leading-8 text-sky-50/72">
-                  {art.story}
-                </p>
-
-                <p className="mt-5 max-w-xl text-sm leading-7 text-sky-100/58">
-                  {art.process}
-                </p>
-
-                <p className="mt-5 font-serif text-xl italic text-sky-100/58">
-                  {art.mood}
-                </p>
-
-                <div className="mt-8 grid gap-3 text-sm text-sky-50/76 sm:grid-cols-3">
-                  <div className="rounded-lg border border-sky-100/12 bg-white/[0.035] p-4">
-                    <div className="text-[10px] uppercase tracking-[0.25em] text-sky-100/42">status</div>
-                    <div className="mt-2">{art.status}</div>
-                  </div>
-                  <div className="rounded-lg border border-sky-100/12 bg-white/[0.035] p-4">
-                    <div className="text-[10px] uppercase tracking-[0.25em] text-sky-100/42">size</div>
-                    <div className="mt-2">{art.size}</div>
-                  </div>
-                  <div className="rounded-lg border border-sky-100/12 bg-white/[0.035] p-4">
-                    <div className="text-[10px] uppercase tracking-[0.25em] text-sky-100/42">price</div>
-                    <div className="mt-2">{art.price}</div>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex gap-2">
-                  {art.palette.map((color) => (
-                    <span
-                      key={color}
-                      className="h-7 w-7 rounded-full border border-white/20"
-                      style={{ background: color }}
-                      aria-label={`Palette color ${color}`}
-                    />
-                  ))}
+                <div className="mt-10 flex items-center gap-5 border-t border-white/10 pt-5 text-xs uppercase tracking-[0.16em] text-sky-100/52">
+                  <button
+                    type="button"
+                    onClick={() => onNavigate(-1)}
+                    className="cursor-pointer transition hover:text-white"
+                  >
+                    ← previous
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate(1)}
+                    className="cursor-pointer transition hover:text-white"
+                  >
+                    next →
+                  </button>
                 </div>
               </div>
 
-              <div className="relative mt-10 flex flex-wrap gap-3">
+              <div className="relative mt-10 grid gap-4">
                 <button
-                  onClick={() => onInquire(art)}
-                  className="rounded-full bg-sky-50 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-white"
+                  type="button"
+                  onClick={onClose}
+                  className="w-fit cursor-pointer text-sm text-sky-100/68 transition hover:text-white"
                 >
-                  inquire
+                  ← Back to archive
                 </button>
                 <button
-                  onClick={onClose}
-                  className="rounded-full border border-sky-100/25 bg-sky-200/[0.05] px-5 py-3 text-sm uppercase tracking-[0.18em] text-sky-100/80 shadow-[0_0_34px_rgba(125,211,252,0.10)] transition hover:border-sky-100/45 hover:bg-sky-200/[0.09] hover:text-white"
+                  type="button"
+                  onClick={() => onInquire(art)}
+                  className="w-fit cursor-pointer border-b border-sky-100/25 pb-1 text-sm text-sky-100/58 transition hover:border-sky-100/60 hover:text-white"
                 >
-                  return
+                  Ask about this piece
                 </button>
               </div>
             </div>
@@ -1066,41 +964,24 @@ function GridGallery({ artworksToShow, onSelect }) {
           className="group grid min-h-[220px] bg-[#060b14] text-left transition hover:bg-[#0b1422] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-100"
         >
           <div className="grid h-full grid-rows-[1fr_auto]">
-            <div
-              className="min-h-32 opacity-90 transition duration-500 group-hover:opacity-100"
-              style={{ backgroundImage: `linear-gradient(135deg, ${art.palette.join(", ")})` }}
+            <img
+              src={art.thumbnail}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="h-full min-h-32 w-full object-cover object-center opacity-90 transition duration-500 group-hover:opacity-100"
             />
             <div className="p-5">
-              <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.22em] text-sky-100/42">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-sky-100/42">
                 <span>{String(i + 1).padStart(2, "0")}</span>
-                <span>{art.collection}</span>
               </div>
               <h3 className="mt-5 text-2xl font-semibold text-white">{art.title}</h3>
               <p className="mt-2 text-sm text-sky-100/58">{art.medium}</p>
-              <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4 text-xs text-sky-100/58">
-                <span>{art.status}</span>
-                <span>{art.price}</span>
-              </div>
             </div>
           </div>
         </button>
       ))}
     </div>
-  );
-}
-
-function FilterButton({ active, children, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-full border px-4 py-2 text-sm transition ${
-        active
-          ? "border-sky-100/70 bg-sky-50 text-black"
-          : "border-white/10 text-sky-100/62 hover:border-white/25 hover:text-white"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -1126,75 +1007,498 @@ function PageShell({ eyebrow, title, intro, children, aside }) {
   );
 }
 
-function HomePage({ motionRef, onSelect, navigate }) {
+function ArcCarousel({ artworks, navigate, onSelect }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const touchRef = useRef({ active: false, startX: 0, startY: 0 });
+  const pointerRef = useRef({ active: false, startX: 0, startY: 0 });
+  const intervalRef = useRef(null);
+  const count = artworks.length;
+
+  const advance = useCallback((direction) => {
+    if (count === 0) return;
+    setActiveIndex((index) => mod(index + direction, count));
+  }, [count]);
+
+  const startAutoRotate = useCallback(() => {
+    if (intervalRef.current) window.clearInterval(intervalRef.current);
+    if (count <= 1) return;
+    intervalRef.current = window.setInterval(() => advance(1), 3500);
+  }, [advance, count]);
+
+  const rotateBy = useCallback((direction, userTriggered = false) => {
+    advance(direction);
+    if (userTriggered) startAutoRotate();
+  }, [advance, startAutoRotate]);
+
+  useEffect(() => {
+    startAutoRotate();
+    return () => {
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
+    };
+  }, [startAutoRotate]);
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+        rotateBy(1, true);
+      } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+        rotateBy(-1, true);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [rotateBy]);
+
+  if (count === 0) return null;
+
+  const visiblePositions = [-3, -2, -1, 0, 1, 2, 3];
+  const activeArtwork = artworks[activeIndex];
+  const dotWindow = Math.min(9, count);
+  const dotStart = activeIndex - Math.floor(dotWindow / 2);
+  const dotIndices = Array.from({ length: dotWindow }, (_, index) => mod(dotStart + index, count));
+  const cardStyles = {
+    "-3": { angle: 30, width: 70, height: 94, opacity: 0.2, zIndex: 2, x: -168, top: 278 },
+    "-2": { angle: -28, width: 84, height: 114, opacity: 0.4, zIndex: 3, x: -128, top: 162 },
+    "-1": { angle: 11, width: 108, height: 146, opacity: 0.72, zIndex: 4, x: -70, top: 72 },
+    0: { angle: 0, width: 154, height: 206, opacity: 1, zIndex: 8, x: 0, top: 130 },
+    1: { angle: -11, width: 108, height: 146, opacity: 0.72, zIndex: 4, x: 70, top: 72 },
+    2: { angle: 28, width: 84, height: 114, opacity: 0.4, zIndex: 3, x: 128, top: 162 },
+    3: { angle: -30, width: 70, height: 94, opacity: 0.2, zIndex: 2, x: 168, top: 278 },
+  };
+
   return (
-    <section className="relative h-screen min-h-[680px] w-screen">
-      <Canvas
-        camera={{ position: [0, 1.2, 7.6], fov: 39 }}
-        dpr={[1, 2]}
-        shadows
-        gl={{ antialias: true, alpha: false }}
+    <div
+      className="relative h-[100dvh] min-h-[720px] overflow-y-auto overflow-x-hidden bg-[#060606] px-5 pb-6 pt-[96px] text-white outline-none"
+      tabIndex={0}
+      onTouchStart={(event) => {
+        const touch = event.touches[0];
+        touchRef.current = { active: true, startX: touch.clientX, startY: touch.clientY };
+      }}
+      onTouchEnd={(event) => {
+        if (!touchRef.current.active) return;
+
+        const touch = event.changedTouches[0];
+        const dx = touch.clientX - touchRef.current.startX;
+        const dy = touch.clientY - touchRef.current.startY;
+        touchRef.current.active = false;
+
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+          rotateBy(dx < 0 ? 1 : -1, true);
+        }
+      }}
+      onPointerDown={(event) => {
+        if (event.pointerType === "touch" || event.target.closest("button")) return;
+        pointerRef.current = { active: true, startX: event.clientX, startY: event.clientY };
+      }}
+      onPointerUp={(event) => {
+        if (!pointerRef.current.active) return;
+
+        const dx = event.clientX - pointerRef.current.startX;
+        const dy = event.clientY - pointerRef.current.startY;
+        pointerRef.current.active = false;
+
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+          rotateBy(dx < 0 ? 1 : -1, true);
+        }
+      }}
+      onPointerLeave={() => {
+        pointerRef.current.active = false;
+      }}
+    >
+      <style>
+        {`
+          @keyframes mobile-mobius-breathe {
+            0%, 100% { transform: translateY(0) rotate(-1.2deg) scale(1); opacity: 0.9; }
+            50% { transform: translateY(10px) rotate(1.6deg) scale(1.025); opacity: 1; }
+          }
+
+          @keyframes mobile-mobius-dash {
+            to { stroke-dashoffset: -46; }
+          }
+
+          @keyframes mobile-card-float {
+            0%, 100% { filter: brightness(0.98) drop-shadow(0 16px 28px rgba(56,189,248,0.08)); }
+            50% { filter: brightness(1.1) drop-shadow(0 24px 42px rgba(125,211,252,0.18)); }
+          }
+
+          @keyframes mobile-stage-drift {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-7px) scale(1.01); }
+          }
+        `}
+      </style>
+
+      <div className="pointer-events-none absolute right-5 top-[108px] z-20 font-mono text-xs text-white/30">
+        {String(activeIndex + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}
+      </div>
+
+      <div
+        className="relative mx-auto h-[470px] w-full max-w-[430px] shrink-0"
+        style={{ animation: "mobile-stage-drift 7s ease-in-out infinite" }}
       >
-        <Scene motionRef={motionRef} onSelect={onSelect} />
-      </Canvas>
+        <div className="pointer-events-none absolute left-1/2 top-[96px] h-72 w-[128vw] max-w-[560px] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.055),rgba(255,255,255,0.018)_36%,transparent_72%)] blur-xl" />
 
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 px-5 pb-8 md:px-10 md:pb-10">
-        <div className="grid gap-5 lg:grid-cols-[1fr_420px] lg:items-end">
-          <div>
-            <motion.h1
-              className="max-w-5xl text-4xl font-semibold tracking-[-0.02em] text-white md:text-7xl"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, ease: "easeOut" }}
-            >
-              A brief inquiry into online relationships.
-            </motion.h1>
+        <svg
+          className="pointer-events-none absolute inset-x-1/2 top-0 h-full w-[128vw] max-w-[560px] -translate-x-1/2 overflow-visible"
+          viewBox="0 0 390 470"
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id="mobileMobiusRibbon" x1="22" y1="102" x2="368" y2="366" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="rgba(255,255,255,0.095)" />
+              <stop offset="0.32" stopColor="rgba(255,255,255,0.16)" />
+              <stop offset="0.5" stopColor="rgba(2,4,8,0.72)" />
+              <stop offset="0.68" stopColor="rgba(255,255,255,0.13)" />
+              <stop offset="1" stopColor="rgba(255,255,255,0.085)" />
+            </linearGradient>
+            <linearGradient id="mobileMobiusEdge" x1="16" y1="120" x2="374" y2="318" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="rgba(255,255,255,0.26)" />
+              <stop offset="0.5" stopColor="rgba(255,255,255,0.66)" />
+              <stop offset="1" stopColor="rgba(255,255,255,0.24)" />
+            </linearGradient>
+            <filter id="mobileMobiusGlow" x="-20%" y="-35%" width="140%" height="170%">
+              <feGaussianBlur stdDeviation="2.8" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
 
-            <motion.p
-              className="mt-5 max-w-2xl text-base leading-7 text-sky-100/62 md:text-lg"
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.15, ease: "easeOut" }}
-            >
-              Pirate King Fanpage traces intimacy, identity, distance, and devotion through an endless gallery of digital-age artifacts.
-            </motion.p>
+          <g style={{ animation: "mobile-mobius-breathe 6.5s ease-in-out infinite" }}>
+            <ellipse cx="195" cy="305" rx="174" ry="76" fill="none" stroke="rgba(255,255,255,0.045)" strokeWidth="1" />
+            <ellipse cx="195" cy="315" rx="124" ry="50" fill="none" stroke="rgba(255,255,255,0.032)" strokeWidth="1" />
+            <path
+              d="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244"
+              fill="none"
+              stroke="rgba(0,0,0,0.82)"
+              strokeLinecap="round"
+              strokeWidth="50"
+            />
+            <path
+              d="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244"
+              fill="none"
+              stroke="url(#mobileMobiusRibbon)"
+              strokeLinecap="round"
+              strokeWidth="34"
+            />
+            <path
+              d="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244"
+              fill="none"
+              filter="url(#mobileMobiusGlow)"
+              stroke="url(#mobileMobiusEdge)"
+              strokeLinecap="round"
+              strokeWidth="1.7"
+            />
+            <path
+              d="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244"
+              fill="none"
+              stroke="rgba(255,255,255,0.16)"
+              strokeDasharray="1 11"
+              strokeLinecap="round"
+              strokeWidth="1"
+              style={{ animation: "mobile-mobius-dash 4.8s linear infinite" }}
+            />
+            <path
+              d="M156 188 C169 212 182 236 195 244 C209 253 222 277 235 302"
+              fill="none"
+              stroke="rgba(0,0,0,0.88)"
+              strokeLinecap="round"
+              strokeWidth="22"
+            />
+            <path
+              d="M156 188 C169 212 182 236 195 244 C209 253 222 277 235 302"
+              fill="none"
+              stroke="rgba(255,255,255,0.24)"
+              strokeLinecap="round"
+              strokeWidth="1.25"
+            />
+            <path
+              d="M55 243 C67 255 77 274 84 300 M83 168 C99 178 113 198 122 225 M131 112 C146 126 159 151 169 181 M221 278 C233 303 248 324 266 339 M275 356 C291 365 309 363 327 350 M325 182 C341 196 352 218 360 245"
+              fill="none"
+              stroke="rgba(255,255,255,0.2)"
+              strokeLinecap="round"
+              strokeWidth="0.85"
+            />
+            <path
+              d="M45 244 C82 139 136 131 195 244 C254 357 308 349 345 244"
+              fill="none"
+              stroke="rgba(255,255,255,0.07)"
+              strokeLinecap="round"
+              strokeWidth="0.9"
+            />
+            <path
+              d="M345 244 C308 139 254 131 195 244 C136 357 82 349 45 244"
+              fill="none"
+              stroke="rgba(255,255,255,0.055)"
+              strokeDasharray="4 8"
+              strokeLinecap="round"
+              strokeWidth="0.9"
+            />
+            <circle r="3.5" fill="rgba(255,255,255,0.86)">
+              <animateMotion dur="5.4s" repeatCount="indefinite" path="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244" />
+            </circle>
+            <circle r="2.4" fill="rgba(190,230,255,0.7)">
+              <animateMotion begin="-2.7s" dur="5.4s" repeatCount="indefinite" path="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244" />
+            </circle>
+            <circle r="1.7" fill="rgba(255,255,255,0.55)">
+              <animateMotion begin="-1.3s" dur="7.2s" repeatCount="indefinite" path="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244" />
+            </circle>
+          </g>
+        </svg>
 
-            <div className="pointer-events-auto mt-6 flex flex-wrap gap-3">
+        <div className="absolute left-1/2 top-0 h-full w-0 -translate-x-1/2">
+          {visiblePositions.map((position) => {
+            const art = artworks[mod(activeIndex + position, count)];
+            const style = cardStyles[position];
+
+            return (
               <button
-                onClick={() => navigate("/work")}
-                className="rounded-full bg-sky-50 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-white"
+                type="button"
+                key={`${art.title}-${position}`}
+                aria-label={position === 0 ? `Open ${art.title}` : position > 0 ? "Next artwork" : "Previous artwork"}
+                onClick={() => {
+                  if (position === 0) {
+                    onSelect(art);
+                    startAutoRotate();
+                  } else {
+                    rotateBy(position, true);
+                  }
+                }}
+                className="absolute block overflow-hidden rounded-md bg-black p-0 shadow-[0_18px_42px_rgba(0,0,0,0.42)]"
+                style={{
+                  width: style.width,
+                  height: style.height,
+                  left: -style.width / 2,
+                  top: style.top,
+                  opacity: style.opacity,
+                  zIndex: style.zIndex,
+                  transformOrigin: "bottom center",
+                  transform: `translateX(${style.x}px) rotate(${style.angle}deg)`,
+                  transition:
+                    "transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.35s ease, width 0.35s ease, height 0.35s ease",
+                  border: position === 0 ? "1px solid rgba(255,255,255,0.5)" : "1px solid rgba(255,255,255,0.08)",
+                  animation: position === 0 ? "mobile-card-float 3.8s ease-in-out infinite" : undefined,
+                }}
               >
-                browse work
+                <img
+                  src={art.thumbnail}
+                  alt={art.title}
+                  draggable="false"
+                  className="h-full w-full select-none bg-black object-contain"
+                />
               </button>
-              <button
-                onClick={() => navigate("/contact")}
-                className="rounded-full border border-sky-100/25 bg-black/25 px-5 py-3 text-sm uppercase tracking-[0.18em] text-sky-100/80 transition hover:border-sky-100/45 hover:text-white"
-              >
-                commission
-              </button>
-            </div>
-          </div>
+            );
+          })}
+        </div>
 
-          <div className="pointer-events-auto hidden rounded-lg border border-white/10 bg-black/32 p-4 backdrop-blur-xl lg:block">
-            <div className="grid gap-px overflow-hidden rounded-md border border-white/10 bg-white/10">
-              {[
-                ["Browse the archive", "View every available work", "/work"],
-                ["Read the premise", "Understand the online-relationship thread", "/about"],
-                ["Start an inquiry", "Commission, purchase, or collaborate", "/contact"],
-              ].map(([title, detail, path]) => (
-                <button
-                  key={title}
-                  onClick={() => navigate(path)}
-                  className="bg-[#050912]/92 p-4 text-left transition hover:bg-[#0b1320]"
-                >
-                  <div className="text-sm font-semibold text-white">{title}</div>
-                  <div className="mt-1 text-sm text-sky-100/50">{detail}</div>
-                </button>
-              ))}
-            </div>
-            <div className="mt-4 text-xs uppercase tracking-[0.24em] text-sky-100/35">
-              wheel, drag, or click a panel
-            </div>
+      </div>
+
+      <div className="relative z-20 -mt-3 text-center">
+        <div className="mx-auto flex max-w-sm items-center justify-center gap-4">
+          <button
+            type="button"
+            aria-label="Previous artwork"
+            onClick={() => rotateBy(-1, true)}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.035] text-3xl leading-none text-white/70 transition hover:border-white/28 hover:text-white"
+          >
+            ‹
+          </button>
+
+          <h2 className="min-w-0 flex-1 text-lg font-bold leading-tight text-white">{activeArtwork.title}</h2>
+
+          <button
+            type="button"
+            aria-label="Next artwork"
+            onClick={() => rotateBy(1, true)}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.035] text-3xl leading-none text-white/70 transition hover:border-white/28 hover:text-white"
+          >
+            ›
+          </button>
+        </div>
+        <div className="mt-2 text-[11px] uppercase tracking-[0.12em] text-white/30">
+          mobius archive
+        </div>
+
+        <div className="mt-4 flex items-center justify-center gap-1.5" aria-label={`Artwork ${activeIndex + 1} of ${count}`}>
+          {dotIndices.map((index) => (
+            <span
+              key={index}
+              className="block transition-all duration-300"
+              style={{
+                width: index === activeIndex ? 16 : 4,
+                height: 4,
+                borderRadius: index === activeIndex ? 2 : "50%",
+                background: index === activeIndex ? "#ffffff" : "rgba(255,255,255,0.2)",
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="relative z-20 mt-5">
+        <h1 className="max-w-sm text-[clamp(1.35rem,5.8vw,1.8rem)] font-semibold leading-[1.08] tracking-[-0.02em] text-white">
+          A brief inquiry into online relationships.
+        </h1>
+        <p className="mt-3 max-w-sm text-xs leading-5 text-sky-100/52">
+          Pirate King Fanpage traces intimacy, identity, distance, and devotion through an endless gallery of digital-age artifacts.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => navigate("/work")}
+            className="rounded-full bg-sky-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-black transition hover:bg-white"
+          >
+            view archive
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/contact")}
+            className="rounded-full border border-sky-100/20 bg-black/20 px-4 py-2.5 text-xs uppercase tracking-[0.16em] text-sky-100/72 transition hover:border-sky-100/40 hover:text-white"
+          >
+            contact
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HomePage({ motionRef, onSelect, navigate }) {
+  const isMobile = useIsMobile();
+  const isDocumentVisible = useDocumentVisibility();
+  const { active: assetsLoading, progress: assetsProgress, total: assetTotal } = useProgress();
+  const [carouselReadyFallback, setCarouselReadyFallback] = useState(false);
+  const [activeArtworkIndex, setActiveArtworkIndex] = useState(0);
+  const [showHint, setShowHint] = useState(false);
+  const syncProgress = useCallback((index) => setActiveArtworkIndex(index), []);
+  const carouselReady =
+    carouselReadyFallback || (assetTotal > 0 && !assetsLoading && assetsProgress >= 100);
+
+  useEffect(() => {
+    const fallbackTimer = window.setTimeout(() => setCarouselReadyFallback(true), 2600);
+    return () => window.clearTimeout(fallbackTimer);
+  }, []);
+
+  useEffect(() => {
+    let showTimer;
+    let hideTimer;
+
+    try {
+      if (window.localStorage.getItem("hint_seen")) return undefined;
+      window.localStorage.setItem("hint_seen", "true");
+    } catch {
+      // The hint remains available when storage is disabled.
+    }
+
+    showTimer = window.setTimeout(() => setShowHint(true), 1500);
+    hideTimer = window.setTimeout(() => setShowHint(false), 5000);
+
+    return () => {
+      window.clearTimeout(showTimer);
+      window.clearTimeout(hideTimer);
+    };
+  }, []);
+
+  return (
+    <section className="relative min-h-[100dvh] w-screen md:h-screen md:min-h-[680px]">
+      <motion.div
+        className="absolute inset-0 [will-change:transform]"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isMobile || carouselReady ? 1 : 0.16 }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
+      >
+        {isMobile ? (
+          <ArcCarousel artworks={artworks} navigate={navigate} onSelect={onSelect} />
+        ) : (
+          <Canvas
+            camera={{ position: [0, 1.2, 7.6], fov: 39 }}
+            dpr={[1, 2]}
+            frameloop={isDocumentVisible ? "always" : "never"}
+            shadows
+            gl={{ antialias: true, alpha: false }}
+          >
+            <Suspense fallback={null}>
+              <MemoizedScene motionRef={motionRef} onSelect={onSelect} onProgress={syncProgress} />
+            </Suspense>
+          </Canvas>
+        )}
+      </motion.div>
+
+      <AnimatePresence>
+        {!isMobile && !carouselReady && (
+          <motion.div
+            className="pointer-events-none absolute left-1/2 top-[31%] z-10 h-28 w-56 -translate-x-1/2 rounded-[50%] border border-sky-100/20 shadow-[0_0_54px_rgba(125,211,252,0.12)]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0.2, 0.62, 0.2] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+          />
+        )}
+      </AnimatePresence>
+
+      <div
+        className="pointer-events-none absolute left-1/2 top-[55%] z-20 hidden -translate-x-1/2 items-center gap-1.5 md:flex"
+        aria-label={`Artwork ${activeArtworkIndex + 1} of ${artworks.length}`}
+      >
+        {artworks.map((art, index) => (
+          <span
+            key={art.title}
+            className={`h-1 rounded-full transition-all duration-300 ${
+              index === activeArtworkIndex ? "w-7 bg-sky-100/80" : "w-1.5 bg-sky-100/22"
+            }`}
+          />
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {!isMobile && showHint && (
+          <motion.div
+            className="pointer-events-none absolute left-1/2 top-[59%] z-20 -translate-x-1/2 text-center text-[11px] uppercase tracking-[0.24em] text-sky-100/52"
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+          >
+            wheel, drag, or click a panel
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 hidden px-5 pb-8 md:block md:px-10 md:pb-10">
+        <div>
+          <motion.h1
+            className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-[-0.02em] text-white md:text-5xl"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, ease: "easeOut" }}
+          >
+            A brief inquiry into online relationships.
+          </motion.h1>
+
+          <motion.p
+            className="mt-4 max-w-xl text-sm leading-6 text-sky-100/58 md:text-base md:leading-7"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.15, ease: "easeOut" }}
+          >
+            Pirate King Fanpage traces intimacy, identity, distance, and devotion through an endless gallery of digital-age artifacts.
+          </motion.p>
+
+          <div className="pointer-events-auto mt-5 flex flex-wrap gap-3">
+            <button
+              onClick={() => navigate("/work")}
+              className="rounded-full bg-sky-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-white"
+            >
+              view archive
+            </button>
+            <button
+              onClick={() => navigate("/contact")}
+              className="rounded-full border border-sky-100/20 bg-black/20 px-4 py-2.5 text-xs uppercase tracking-[0.16em] text-sky-100/72 transition hover:border-sky-100/40 hover:text-white"
+            >
+              contact
+            </button>
           </div>
         </div>
       </div>
@@ -1203,50 +1507,17 @@ function HomePage({ motionRef, onSelect, navigate }) {
 }
 
 function WorkPage({ onSelect }) {
-  const [collection, setCollection] = useState("All");
-  const [availability, setAvailability] = useState("All");
-
-  const filteredArtworks = artworks.filter((art) => {
-    const collectionMatch = collection === "All" || art.collection === collection;
-    const availabilityMatch = availability === "All" || art.status === availability;
-    return collectionMatch && availabilityMatch;
-  });
-
   return (
     <PageShell
       eyebrow="work"
-      title="A calmer archive of mediated intimacy."
-      intro="A restrained archive with enough metadata to browse quickly, compare formats, and open only the pieces you want to inspect."
+      title="The archive."
+      intro="Open a piece to spend more time with it."
     >
-      <div className="mt-9 grid gap-5 border-b border-white/10 pb-6 lg:grid-cols-[1fr_auto] lg:items-end">
-        <div>
-          <div className="text-sm text-sky-100/52">
-            Showing {filteredArtworks.length} of {artworks.length} works
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {collections.map((item) => (
-              <FilterButton key={item} active={collection === item} onClick={() => setCollection(item)}>
-                {item}
-              </FilterButton>
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2 lg:justify-end">
-          {availabilityFilters.map((item) => (
-            <FilterButton key={item} active={availability === item} onClick={() => setAvailability(item)}>
-              {item}
-            </FilterButton>
-          ))}
-        </div>
+      <div className="mt-9 border-b border-white/10 pb-6 text-sm text-sky-100/52">
+        {artworks.length} works
       </div>
 
-      {filteredArtworks.length ? (
-        <GridGallery artworksToShow={filteredArtworks} onSelect={onSelect} />
-      ) : (
-        <div className="mt-10 rounded-lg border border-white/10 p-8 text-sky-100/62">
-          No works match those filters. Try a broader collection or availability state.
-        </div>
-      )}
+      <GridGallery artworksToShow={artworks} onSelect={onSelect} />
     </PageShell>
   );
 }
@@ -1317,10 +1588,11 @@ function JournalPage({ navigate }) {
 }
 
 function ContactPage({ selectedArt, onSelectArtwork, navigate }) {
+  const firstArtworkTitle = artworks[0]?.title ?? "Custom commission";
   const [form, setForm] = useState({
     name: "",
     email: "",
-    interest: selectedArt?.title ?? artworks[0].title,
+    interest: selectedArt?.title ?? firstArtworkTitle,
     message: "",
   });
   const [sent, setSent] = useState(false);
@@ -1340,46 +1612,65 @@ function ContactPage({ selectedArt, onSelectArtwork, navigate }) {
     );
     const subject = encodeURIComponent(`Portfolio inquiry: ${interest}`);
 
-    window.location.href = `mailto:studio@pirateking.art?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
     setSent(true);
   }
 
   return (
     <section className="relative min-h-screen px-5 pb-20 pt-28 md:pb-24 md:pt-32">
-      <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.78fr_1fr]">
-        <div>
+      <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.82fr_1fr]">
+        <div className="min-w-0">
           <div className="text-xs uppercase tracking-[0.34em] text-sky-100/40">contact</div>
-          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.025em] text-white md:text-6xl">
-            Inquire without starting from scratch.
+          <h1 className="mt-4 max-w-full break-words text-3xl font-semibold leading-[1.1] tracking-[-0.025em] text-white md:text-5xl">
+            Let&apos;s talk about the work.
           </h1>
           <p className="mt-6 max-w-xl text-base leading-7 text-sky-100/60">
-            Choose a work, add the useful details, and the site prepares a clean email with the context already included.
+            Reach out directly, or use the short form to open an email draft with the useful context already included.
           </p>
 
           {selectedArt && (
-            <div className="mt-8 rounded-lg border border-white/10 bg-white/[0.035] p-5">
-              <div className="text-xs uppercase tracking-[0.25em] text-sky-100/38">selected work</div>
-              <div className="mt-3 text-xl font-semibold text-white">{selectedArt.title}</div>
-              <div className="mt-2 text-sm text-sky-100/56">
-                {selectedArt.status} · {selectedArt.price}
+            <div className="mt-8 flex items-center gap-4 border-y border-white/10 py-4">
+              <img
+                src={selectedArt.thumbnail}
+                alt=""
+                className="h-16 w-12 object-cover object-center"
+              />
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.2em] text-sky-100/38">
+                  selected work
+                </div>
+                <div className="mt-2 text-lg font-semibold text-white">{selectedArt.title}</div>
               </div>
             </div>
           )}
 
-          <div className="mt-8 grid gap-3 text-sm text-sky-100/64">
-            <a className="transition hover:text-white" href="mailto:studio@pirateking.art">
-              studio@pirateking.art
+          <div className="mt-8 grid gap-5 text-sm">
+            <a className="group w-fit transition hover:text-white" href={`mailto:${CONTACT_EMAIL}`}>
+              <span className="block text-[11px] uppercase tracking-[0.2em] text-sky-100/38">
+                email
+              </span>
+              <span className="mt-1 block text-sky-100/72 transition group-hover:text-white">
+                {CONTACT_EMAIL}
+              </span>
             </a>
-            <a className="transition hover:text-white" href="https://instagram.com/" target="_blank" rel="noreferrer">
-              Instagram / process archive
+            <a className="group w-fit transition hover:text-white" href={`tel:${CONTACT_PHONE}`}>
+              <span className="block text-[11px] uppercase tracking-[0.2em] text-sky-100/38">
+                phone
+              </span>
+              <span className="mt-1 block text-sky-100/72 transition group-hover:text-white">
+                {CONTACT_PHONE}
+              </span>
             </a>
             <button className="w-fit text-left transition hover:text-white" onClick={() => navigate("/work")}>
-              View available work
+              View the archive →
             </button>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="rounded-lg border border-white/12 bg-white/[0.035] p-5 md:p-7">
+        <form onSubmit={handleSubmit} className="min-w-0 rounded-md border border-white/12 bg-white/[0.035] p-5 md:p-7">
+          <div className="mb-6 text-sm leading-6 text-sky-100/58">
+            Send a note
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2 text-sm text-sky-100/68">
               Name
@@ -1387,31 +1678,31 @@ function ContactPage({ selectedArt, onSelectArtwork, navigate }) {
                 required
                 value={form.name}
                 onChange={(event) => updateField("name", event.target.value)}
-                className="rounded-lg border border-sky-100/14 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-sky-100/45"
+                className="min-w-0 rounded-lg border border-sky-100/14 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-sky-100/45"
               />
             </label>
 
             <label className="grid gap-2 text-sm text-sky-100/68">
-              Email
+              Reply email
               <input
                 required
                 type="email"
                 value={form.email}
                 onChange={(event) => updateField("email", event.target.value)}
-                className="rounded-lg border border-sky-100/14 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-sky-100/45"
+                className="min-w-0 rounded-lg border border-sky-100/14 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-sky-100/45"
               />
             </label>
           </div>
 
           <label className="mt-4 grid gap-2 text-sm text-sky-100/68">
-            Interest
+            About
             <select
               value={interest}
               onChange={(event) => {
                 updateField("interest", event.target.value);
                 onSelectArtwork(null);
               }}
-              className="rounded-lg border border-sky-100/14 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-sky-100/45"
+              className="min-w-0 rounded-lg border border-sky-100/14 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-sky-100/45"
             >
               {artworks.map((art) => (
                 <option key={art.title} value={art.title}>
@@ -1427,11 +1718,11 @@ function ContactPage({ selectedArt, onSelectArtwork, navigate }) {
             Message
             <textarea
               required
-              rows="6"
+              rows="5"
               value={form.message}
               onChange={(event) => updateField("message", event.target.value)}
-              className="resize-none rounded-lg border border-sky-100/14 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-sky-100/45"
-              placeholder="Tell me what caught your eye, your timeline, dimensions, budget range, or where the work will live."
+              className="min-w-0 resize-none rounded-lg border border-sky-100/14 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-sky-100/45"
+              placeholder="Write a quick note about the piece or idea you have in mind."
             />
           </label>
 
@@ -1440,9 +1731,9 @@ function ContactPage({ selectedArt, onSelectArtwork, navigate }) {
               type="submit"
               className="rounded-full bg-sky-50 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-white"
             >
-              prepare email
+              open email draft
             </button>
-            {sent && <span className="text-sm text-sky-100/60">Your email app should be ready with the inquiry.</span>}
+            {sent && <span className="text-sm text-sky-100/60">Your email app should be ready.</span>}
           </div>
         </form>
       </div>
@@ -1451,8 +1742,9 @@ function ContactPage({ selectedArt, onSelectArtwork, navigate }) {
 }
 
 export default function MobiusPortfolio() {
-  const motionRef = useRef({ progress: 0, velocity: 0 });
+  const motionRef = useRef({ progress: 0, velocity: 0, interactionBlockedUntil: 0 });
   const dragRef = useRef({ active: false, x: 0, y: 0 });
+  const wheelThrottleRef = useRef(0);
 
   const [route, setRoute] = useState(() => normalizePath(window.location.pathname));
   const [modalArt, setModalArt] = useState(null);
@@ -1481,6 +1773,7 @@ export default function MobiusPortfolio() {
       -1.15,
       1.15
     );
+    motionRef.current.interactionBlockedUntil = performance.now() + 140;
   }
 
   function navigate(path) {
@@ -1499,10 +1792,26 @@ export default function MobiusPortfolio() {
     navigate("/contact");
   }
 
+  const closeModal = useCallback(() => setModalArt(null), []);
+
+  const navigateModal = useCallback((direction) => {
+    setModalArt((currentArt) => {
+      if (!currentArt) return currentArt;
+
+      const currentIndex = artworks.findIndex((art) => art.title === currentArt.title);
+      return artworks[mod(currentIndex + direction, artworks.length)];
+    });
+  }, []);
+
   return (
     <div
       className="relative min-h-screen overflow-x-hidden bg-[#02040a] text-white"
-      onWheel={(e) => pushVelocity(e.deltaY * 0.00128)}
+      onWheel={(e) => {
+        const now = performance.now();
+        if (now - wheelThrottleRef.current < 16) return;
+        wheelThrottleRef.current = now;
+        pushVelocity(e.deltaY * 0.00128);
+      }}
       onPointerDown={(e) => {
         dragRef.current = { active: true, x: e.clientX, y: e.clientY };
       }}
@@ -1561,7 +1870,7 @@ export default function MobiusPortfolio() {
           onClick={() => navigate("/contact")}
           className="hidden rounded-full border border-sky-100/20 px-4 py-2 text-xs uppercase tracking-[0.18em] text-sky-100/76 transition hover:border-sky-100/45 hover:text-white sm:block"
         >
-          inquire
+          contact
         </button>
 
         <button
@@ -1600,7 +1909,7 @@ export default function MobiusPortfolio() {
               onClick={() => navigate("/contact")}
               className="mt-8 rounded-full bg-sky-50 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-black"
             >
-              start an inquiry
+              contact
             </button>
           </motion.nav>
         )}
@@ -1634,8 +1943,9 @@ export default function MobiusPortfolio() {
 
       <ArtworkModal
         art={modalArt}
-        onClose={() => setModalArt(null)}
+        onClose={closeModal}
         onInquire={startInquiry}
+        onNavigate={navigateModal}
       />
     </div>
   );
