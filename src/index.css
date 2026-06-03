@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+html {
+  min-height: 100%;
+  background: #02040a;
+  color-scheme: dark;
+  overscroll-behavior: none;
+}
+
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+  background: #02040a;
+}
+
+body {
+  overflow-x: hidden;
+}
+
 button,
 a,
 select {

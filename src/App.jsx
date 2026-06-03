@@ -1069,7 +1069,7 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
 
   return (
     <div
-      className="relative h-[100dvh] min-h-[720px] overflow-y-auto overflow-x-hidden bg-[#060606] px-5 pb-6 pt-[96px] text-white outline-none"
+      className="relative h-[100dvh] min-h-[720px] overflow-y-auto overflow-x-hidden bg-[#02040a] px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(96px+env(safe-area-inset-top))] text-white outline-none"
       tabIndex={0}
       onTouchStart={(event) => {
         const touch = event.touches[0];
@@ -1145,17 +1145,25 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
           aria-hidden="true"
         >
           <defs>
-            <linearGradient id="mobileMobiusRibbon" x1="22" y1="102" x2="368" y2="366" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="rgba(255,255,255,0.095)" />
-              <stop offset="0.32" stopColor="rgba(255,255,255,0.16)" />
-              <stop offset="0.5" stopColor="rgba(2,4,8,0.72)" />
-              <stop offset="0.68" stopColor="rgba(255,255,255,0.13)" />
-              <stop offset="1" stopColor="rgba(255,255,255,0.085)" />
+            <linearGradient id="mobileMobiusRibbon" x1="42" y1="132" x2="350" y2="336" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="rgba(255,255,255,0.05)" />
+              <stop offset="0.18" stopColor="rgba(180,224,255,0.22)" />
+              <stop offset="0.42" stopColor="rgba(255,255,255,0.1)" />
+              <stop offset="0.55" stopColor="rgba(2,4,10,0.62)" />
+              <stop offset="0.72" stopColor="rgba(255,255,255,0.2)" />
+              <stop offset="1" stopColor="rgba(106,189,255,0.07)" />
             </linearGradient>
-            <linearGradient id="mobileMobiusEdge" x1="16" y1="120" x2="374" y2="318" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="rgba(255,255,255,0.26)" />
-              <stop offset="0.5" stopColor="rgba(255,255,255,0.66)" />
-              <stop offset="1" stopColor="rgba(255,255,255,0.24)" />
+            <linearGradient id="mobileMobiusBack" x1="342" y1="130" x2="46" y2="340" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="rgba(255,255,255,0.045)" />
+              <stop offset="0.42" stopColor="rgba(255,255,255,0.13)" />
+              <stop offset="0.6" stopColor="rgba(3,7,13,0.7)" />
+              <stop offset="1" stopColor="rgba(255,255,255,0.06)" />
+            </linearGradient>
+            <linearGradient id="mobileMobiusEdge" x1="35" y1="168" x2="360" y2="292" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="rgba(255,255,255,0.2)" />
+              <stop offset="0.36" stopColor="rgba(255,255,255,0.72)" />
+              <stop offset="0.64" stopColor="rgba(123,210,255,0.34)" />
+              <stop offset="1" stopColor="rgba(255,255,255,0.18)" />
             </linearGradient>
             <filter id="mobileMobiusGlow" x="-20%" y="-35%" width="140%" height="170%">
               <feGaussianBlur stdDeviation="2.8" result="blur" />
@@ -1170,29 +1178,43 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
             <ellipse cx="195" cy="305" rx="174" ry="76" fill="none" stroke="rgba(255,255,255,0.045)" strokeWidth="1" />
             <ellipse cx="195" cy="315" rx="124" ry="50" fill="none" stroke="rgba(255,255,255,0.032)" strokeWidth="1" />
             <path
-              d="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244"
+              d="M37 251 C84 153 135 137 194 237 C256 343 314 335 354 244 C309 132 255 136 195 244 C134 354 82 335 37 251"
               fill="none"
-              stroke="rgba(0,0,0,0.82)"
+              stroke="rgba(0,0,0,0.86)"
               strokeLinecap="round"
-              strokeWidth="50"
+              strokeWidth="62"
             />
             <path
-              d="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244"
+              d="M38 252 C82 147 135 133 195 238 C257 346 312 339 354 244"
               fill="none"
               stroke="url(#mobileMobiusRibbon)"
               strokeLinecap="round"
-              strokeWidth="34"
+              strokeWidth="42"
             />
             <path
-              d="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244"
+              d="M354 244 C310 139 255 133 195 244 C135 353 82 341 38 252"
+              fill="none"
+              stroke="url(#mobileMobiusBack)"
+              strokeLinecap="round"
+              strokeWidth="42"
+            />
+            <path
+              d="M38 252 C82 147 135 133 195 238 C257 346 312 339 354 244"
               fill="none"
               filter="url(#mobileMobiusGlow)"
               stroke="url(#mobileMobiusEdge)"
               strokeLinecap="round"
-              strokeWidth="1.7"
+              strokeWidth="2"
             />
             <path
-              d="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244"
+              d="M354 244 C310 139 255 133 195 244 C135 353 82 341 38 252"
+              fill="none"
+              stroke="rgba(255,255,255,0.16)"
+              strokeLinecap="round"
+              strokeWidth="1.45"
+            />
+            <path
+              d="M38 252 C82 147 135 133 195 238 C257 346 312 339 354 244 C310 139 255 133 195 244 C135 353 82 341 38 252"
               fill="none"
               stroke="rgba(255,255,255,0.16)"
               strokeDasharray="1 11"
@@ -1201,35 +1223,35 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
               style={{ animation: "mobile-mobius-dash 4.8s linear infinite" }}
             />
             <path
-              d="M156 188 C169 212 182 236 195 244 C209 253 222 277 235 302"
+              d="M160 191 C175 217 187 236 195 238 C207 240 222 271 237 306"
               fill="none"
               stroke="rgba(0,0,0,0.88)"
               strokeLinecap="round"
-              strokeWidth="22"
+              strokeWidth="28"
             />
             <path
-              d="M156 188 C169 212 182 236 195 244 C209 253 222 277 235 302"
+              d="M160 191 C175 217 187 236 195 238 C207 240 222 271 237 306"
               fill="none"
-              stroke="rgba(255,255,255,0.24)"
+              stroke="rgba(255,255,255,0.34)"
               strokeLinecap="round"
-              strokeWidth="1.25"
+              strokeWidth="1.5"
             />
             <path
-              d="M55 243 C67 255 77 274 84 300 M83 168 C99 178 113 198 122 225 M131 112 C146 126 159 151 169 181 M221 278 C233 303 248 324 266 339 M275 356 C291 365 309 363 327 350 M325 182 C341 196 352 218 360 245"
+              d="M58 248 C70 261 80 280 87 306 M82 178 C99 185 115 206 126 232 M137 137 C152 151 166 174 178 204 M222 272 C232 300 248 324 268 340 M274 340 C291 349 313 342 334 319 M309 151 C326 167 340 196 350 235"
               fill="none"
               stroke="rgba(255,255,255,0.2)"
               strokeLinecap="round"
               strokeWidth="0.85"
             />
             <path
-              d="M45 244 C82 139 136 131 195 244 C254 357 308 349 345 244"
+              d="M57 251 C94 158 142 153 195 238 C250 331 302 326 336 245"
               fill="none"
-              stroke="rgba(255,255,255,0.07)"
+              stroke="rgba(255,255,255,0.08)"
               strokeLinecap="round"
               strokeWidth="0.9"
             />
             <path
-              d="M345 244 C308 139 254 131 195 244 C136 357 82 349 45 244"
+              d="M336 245 C302 156 250 153 195 244 C142 336 94 328 57 251"
               fill="none"
               stroke="rgba(255,255,255,0.055)"
               strokeDasharray="4 8"
@@ -1237,13 +1259,13 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
               strokeWidth="0.9"
             />
             <circle r="3.5" fill="rgba(255,255,255,0.86)">
-              <animateMotion dur="5.4s" repeatCount="indefinite" path="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244" />
+              <animateMotion dur="5.4s" repeatCount="indefinite" path="M38 252 C82 147 135 133 195 238 C257 346 312 339 354 244 C310 139 255 133 195 244 C135 353 82 341 38 252" />
             </circle>
             <circle r="2.4" fill="rgba(190,230,255,0.7)">
-              <animateMotion begin="-2.7s" dur="5.4s" repeatCount="indefinite" path="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244" />
+              <animateMotion begin="-2.7s" dur="5.4s" repeatCount="indefinite" path="M38 252 C82 147 135 133 195 238 C257 346 312 339 354 244 C310 139 255 133 195 244 C135 353 82 341 38 252" />
             </circle>
             <circle r="1.7" fill="rgba(255,255,255,0.55)">
-              <animateMotion begin="-1.3s" dur="7.2s" repeatCount="indefinite" path="M24 244 C70 108 132 103 195 244 C258 385 320 380 366 244 C320 108 258 103 195 244 C132 385 70 380 24 244" />
+              <animateMotion begin="-1.3s" dur="7.2s" repeatCount="indefinite" path="M38 252 C82 147 135 133 195 238 C257 346 312 339 354 244 C310 139 255 133 195 244 C135 353 82 341 38 252" />
             </circle>
           </g>
         </svg>
