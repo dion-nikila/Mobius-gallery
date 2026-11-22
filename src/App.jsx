@@ -1,7 +1,7 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, MotionConfig, useReducedMotion } from "framer-motion";
 import CommissionPage from "./CommissionPage";
-import { commissionLink, INSTAGRAM_URL, WHATSAPP_URL } from "./commissions";
+import { commissionLink, INSTAGRAM_URL } from "./commissions";
 
 const TAU = Math.PI * 2;
 const DesktopGallery = lazy(() => import("./DesktopGallery"));
@@ -163,6 +163,8 @@ function ArtworkImage({ art }) {
 }
 
 function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
+  const index = artworks.indexOf(art);
+  const neighbors = [-1, 0, 1];
   const dialogRef = useRef(null);
   const isOpen = Boolean(art);
 
@@ -235,40 +237,27 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
               ×
             </button>
 
-            <ArtworkImage key={art.image} art={art} />
+            <div className="exhibit-stage">
+              <ArtworkImage key={art.image} art={art} />
+            </div>
 
             <div className="archive-detail relative flex min-w-0 flex-col justify-between p-4 md:p-8">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(125,211,252,0.10),transparent_32%)]" />
 
               <div className="relative">
-                <div className="mb-4 flex items-center gap-3 text-xs uppercase tracking-[0.22em] text-sky-100/45">
-                  <span className="h-px w-10 bg-sky-200/50" />
-                  selected work
-                </div>
-
-                <h2 id="artwork-title" className="break-words text-2xl font-semibold leading-[1.15] tracking-tight text-white md:text-4xl">
-                  {art.title}
-                </h2>
-
-                <div className="mt-5 text-[13px] uppercase tracking-[0.1em] text-sky-100/50">
-                  {art.year} · {art.medium}
-                </div>
-
-                <div className="mt-5 flex items-center gap-5 border-t border-white/10 pt-5 text-xs uppercase tracking-[0.16em] text-sky-100/52">
-                  <button
-                    type="button"
-                    onClick={() => onNavigate(-1)}
-                    className="min-h-11 cursor-pointer transition hover:text-white"
-                  >
-                    ← previous
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onNavigate(1)}
-                    className="min-h-11 cursor-pointer transition hover:text-white"
-                  >
-                    next →
-                  </button>
+                <p className="exhibit-index" aria-live="polite">Artwork {index + 1} / {artworks.length}</p>
+                <h2 id="artwork-title" className="exhibit-title">{art.title}</h2>
+                <div className="exhibit-film" aria-label="Browse nearby artwork">
+                  {neighbors.map((offset) => {
+                    const piece = artworks[mod(index + offset, artworks.length)];
+                    return offset === 0 ? (
+                      <img key={offset} src={piece.thumbnail} alt="" className="exhibit-current" />
+                    ) : (
+                      <button key={offset} type="button" onClick={() => onNavigate(offset)} aria-label={`${offset < 0 ? "Previous" : "Next"} artwork: ${piece.title}`}>
+                        <img src={piece.thumbnail} alt="" />
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -696,10 +685,10 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
 
       <div className="relative z-20 mt-5">
         <h1 className="max-w-sm text-[clamp(1.35rem,5.8vw,1.8rem)] font-semibold leading-[1.08] tracking-[-0.02em] text-white">
-          Character studies on a continuous loop.
+          Somewhere out there, the drawings are still awake.
         </h1>
         <p className="mt-3 max-w-sm text-xs leading-5 text-sky-100/52">
-          Explore Dion Nikila’s archive of character art, or commission an illustration of your own.
+          An archive of character studies by Dion Nikila.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <button
@@ -815,8 +804,8 @@ function HomePage({ onSelect }) {
           </div>
 
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-5 pb-8 md:px-10 md:pb-10">
-            <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">Character studies on a continuous loop.</h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-sky-100/70 md:text-base">Explore Dion Nikila’s archive of character art, or commission an illustration of your own.</p>
+            <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">Somewhere out there, the drawings are still awake.</h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-sky-100/70 md:text-base">An archive of character studies by Dion Nikila.</p>
             <div className="pointer-events-auto mt-5 flex w-fit flex-wrap gap-3">
               <a href="#/work" className="inline-flex min-h-11 items-center rounded-full bg-sky-50 px-4 text-sm font-semibold text-[#07111b] hover:bg-white">Browse art to buy</a>
               <a href={commissionLink()} className="inline-flex min-h-11 items-center rounded-full border border-sky-100/24 bg-black/25 px-4 text-sm font-semibold text-sky-100 hover:border-sky-100/60">Commission a piece</a>
@@ -843,26 +832,30 @@ function WorkPage({ onSelect }) {
   );
 }
 
-function AboutPage() {
+function ArchiveCollage({ pieces, onSelect }) {
   return (
-    <PageShell
-      eyebrow="About the artist"
-      title="Dion Nikila"
-      intro="The Chinese Satellite Archive is my illustration portfolio and commission studio in Sri Lanka."
-    >
-      <div className="mt-8 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="archive-panel space-y-5 p-5 text-lg leading-8 text-sky-100/85 sm:p-8">
-          <p>I’m drawn to characters you can recognize from a silhouette or a single gesture. The archive collects my studies of characters from manga, anime, and animation in a gallery that folds back on itself.</p>
-          <p>For commissions, I can draw a portrait, interpret an original character, or develop artwork for a cover or poster. Share a little about the person, world, or project you have in mind.</p>
-        </div>
-        <div className="archive-panel self-end p-5 sm:p-8">
-          <h2 className="text-lg font-semibold text-white">Work with me</h2>
-          <p className="mt-2 text-sm leading-6 text-sky-100/70">See the starting prices and send a brief, or get in touch directly.</p>
-          <a href={commissionLink()} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-sky-100 underline underline-offset-4">View commissions</a>
-          <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-sky-100/75">
-            <a href={INSTAGRAM_URL} className="underline underline-offset-4">@thechinese.satellite</a>
-            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">WhatsApp</a>
-            <a href="#/contact" className="underline underline-offset-4">Send a message</a>
+    <div className="archive-collage">
+      {pieces.map((piece) => (
+        <button key={piece.title} type="button" onClick={() => onSelect(piece)} aria-label={`View ${piece.title}`}>
+          <img src={piece.thumbnail} alt="" decoding="async" />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function AboutPage({ onSelect }) {
+  return (
+    <PageShell eyebrow="About the artist" title="Dion Nikila" intro="I draw characters, then build strange places for them to live.">
+      <div className="archive-editorial">
+        <ArchiveCollage pieces={[artworks[4], artworks[1], artworks[8]]} onSelect={onSelect} />
+        <div className="archive-panel space-y-5 p-6 text-base leading-8 text-sky-100/85 sm:p-8">
+          <h2 className="exhibit-title">A gallery with one side</h2>
+          <p>I’m drawn to characters you can recognize from a silhouette or a single gesture. This archive brings those studies together in a gallery that folds back on itself.</p>
+          <p>I also make portraits, original characters, covers, and posters. Tell me a little about the world you want the work to belong to.</p>
+          <div className="flex flex-wrap gap-x-6">
+            <a href="#/contact" className="inline-flex min-h-11 items-center underline underline-offset-4">Get in touch</a>
+            <a href={INSTAGRAM_URL} className="inline-flex min-h-11 items-center underline underline-offset-4">@thechinese.satellite</a>
           </div>
         </div>
       </div>
@@ -870,23 +863,25 @@ function AboutPage() {
   );
 }
 
-function JournalPage() {
+function JournalPage({ onSelect }) {
   return (
-    <PageShell
-      eyebrow="Journal"
-      title="Studio notes"
-      intro="A few notes on the shape of the gallery, the work inside it, and how a commission starts."
-    >
-      <div className="archive-notes mt-8 grid gap-4 lg:grid-cols-3">
-        {studioNotes.map((note) => (
-          <article key={note.title} className="archive-panel grid content-start gap-5 p-5 sm:p-8">
-            <div className="text-xs uppercase tracking-[0.16em] text-sky-100/58">{note.date}</div>
-            <div>
-              <h2 className="text-2xl font-semibold text-white">{note.title}</h2>
-              <p className="mt-3 max-w-2xl leading-7 text-sky-100/74">{note.summary}</p>
-            </div>
-          </article>
-        ))}
+    <PageShell eyebrow="Journal" title="Studio notes" intro="Notes on the loop, character studies, and what goes into a commission.">
+      <div className="journal-grid">
+        {studioNotes.map((note, index) => {
+          const piece = artworks[[3, 7, 10][index]];
+          return (
+            <article key={note.title} className="journal-entry">
+              <button type="button" className="journal-image" onClick={() => onSelect(piece)} aria-label={`View ${piece.title}`}>
+                <img src={piece.thumbnail} alt="" loading="lazy" decoding="async" />
+              </button>
+              <div className="p-5 sm:p-7">
+                <p className="exhibit-index">{note.date}</p>
+                <h2 className="exhibit-title mt-3">{note.title}</h2>
+                <p className="mt-4 leading-7 text-sky-100/80">{note.summary}</p>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </PageShell>
   );
@@ -1026,10 +1021,10 @@ export default function MobiusPortfolio() {
               <HomePage onSelect={setModalArt} />
             )}
             {activeRoute.path === "/work" && <WorkPage onSelect={setModalArt} />}
-            {activeRoute.path === "/about" && <AboutPage />}
-            {activeRoute.path === "/journal" && <JournalPage />}
+            {activeRoute.path === "/about" && <AboutPage onSelect={setModalArt} />}
+            {activeRoute.path === "/journal" && <JournalPage onSelect={setModalArt} />}
             {activeRoute.path === "/commissions" && (
-              <CommissionPage type={location.type} artwork={inquiryArt} formRef={formRef} isContact={location.isContact} />
+              <CommissionPage type={location.type} artwork={inquiryArt} formRef={formRef} isContact={location.isContact} visual={<ArchiveCollage pieces={[artworks[0], artworks[5], artworks[9]]} onSelect={setModalArt} />} />
             )}
           </motion.div>
         </AnimatePresence>

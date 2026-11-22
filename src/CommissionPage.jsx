@@ -117,7 +117,7 @@ function RequestForm({ type, artwork, onChoose, formRef }) {
   );
 }
 
-export default function CommissionPage({ type, artwork, formRef, isContact }) {
+export default function CommissionPage({ type, artwork, formRef, isContact, visual }) {
   const selected = requestTypes.some((item) => item.id === type) ? type : offers[0].id;
   const isBuying = selected === "artwork";
 
@@ -140,9 +140,10 @@ export default function CommissionPage({ type, artwork, formRef, isContact }) {
         </div>
       </header>
 
-      <div className={`mt-6 grid gap-6 ${isContact ? "max-w-2xl" : "lg:grid-cols-2 lg:gap-10"}`}>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:gap-10">
         <RequestForm type={selected} artwork={artwork} onChoose={choose} formRef={formRef} />
 
+        {isContact && visual}
         {!isContact && <aside className="min-w-0">
           <h2 className="text-lg font-semibold">Commission options</h2>
           <div className="mt-3 grid gap-2.5">
