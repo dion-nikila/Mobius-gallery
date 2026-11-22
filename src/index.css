@@ -237,3 +237,50 @@ form[tabindex] {
 @media (min-width: 64rem) {
   .journal-entry:nth-child(n+2) { grid-template-rows: 6px 1fr; }
 }
+
+.desktop-gallery-preview {
+  position: relative;
+  display: grid;
+  min-height: max(100dvh, 680px);
+  place-items: center;
+  overflow: hidden;
+}
+.desktop-gallery-orbit {
+  position: absolute;
+  left: 50%;
+  top: 43%;
+  width: min(74vw, 65rem);
+  aspect-ratio: 3.4;
+  border: 1px solid #7dd3fc42;
+  border-radius: 50%;
+  box-shadow: 0 0 38px #7dd3fc16, inset 0 0 38px #7dd3fc16;
+  transform: translate(-50%, -50%) rotate(-9deg);
+}
+.desktop-gallery-art {
+  position: relative;
+  margin-bottom: 12vh;
+  width: clamp(9rem, 17vw, 16rem);
+  padding: .25rem;
+  border: 1px solid #bae6fd60;
+  background: #08121e;
+  box-shadow: 0 0 36px #7dd3fc25;
+}
+.desktop-gallery-art img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
+.archive-route-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem 1.5rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid #7dd3fc45;
+}
+.archive-route-links a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: #bae6fd;
+  text-underline-offset: .3em;
+}
+.archive-route-links a:hover { text-decoration: underline; }
+.archive-tile { transition: border-color .2s ease, background-color .2s ease; }
+.archive-tile:is(:hover, :focus-within) { background: #112537; }
+.exhibit-current { box-shadow: inset 0 0 0 1px #7dd3fc50; }

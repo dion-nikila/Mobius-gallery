@@ -744,18 +744,39 @@ function supportsWebGL() {
   }
 }
 
+function DesktopGalleryPreview({ onSelect, loading }) {
+  const featured = artworks[Math.floor(artworks.length / 2)];
+
+  return (
+    <div className="desktop-gallery-preview" aria-busy={loading}>
+      <div className="desktop-gallery-orbit" aria-hidden="true" />
+      <button type="button" className="desktop-gallery-art" onClick={() => onSelect(featured)} aria-label={`Open ${featured.title}`}>
+        <img src={featured.thumbnail} alt="" decoding="async" />
+      </button>
+      <div className="absolute inset-x-0 bottom-0 px-5 pb-8 md:px-10 md:pb-10">
+        <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">{landingTitle}</h1>
+        <div className="mt-2 flex w-fit flex-wrap gap-x-5">
+          <a href="#/work" className="landing-link">Browse art</a>
+          <a href={commissionLink()} className="landing-link">Commission a piece</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HomePage({ onSelect }) {
   const isMobile = useIsMobile();
   const isVisible = useDocumentVisibility();
   const reduceMotion = useReducedMotion();
   const [activeIndex, setActiveIndex] = useState(null);
   const [failed, setFailed] = useState(false);
-  const [webGLAvailable] = useState(supportsWebGL);
+  const [webGLAvailable] = useState(() => !isMobile && !reduceMotion ? supportsWebGL() : null);
+  const canUseWebGL = useMemo(() => !isMobile && !reduceMotion && (webGLAvailable ?? supportsWebGL()), [isMobile, reduceMotion, webGLAvailable]);
   const motionRef = useRef({ progress: 0, velocity: 0 });
   const drag = useRef(null);
 
   const showFallback = useCallback(() => setFailed(true), []);
-  const use3D = webGLAvailable && !isMobile && !reduceMotion && !failed;
+  const use3D = canUseWebGL && !failed;
   const ready = use3D && activeIndex !== null;
 
   function navigate(path) {
@@ -764,7 +785,8 @@ function HomePage({ onSelect }) {
 
   return (
     <section className="relative min-h-[100dvh] overflow-x-clip md:min-h-[max(100dvh,680px)]" aria-label="Möbius artwork gallery">
-      {!ready && <ArcCarousel artworks={artworks} onSelect={onSelect} navigate={navigate} />}
+      {isMobile && <ArcCarousel artworks={artworks} onSelect={onSelect} navigate={navigate} />}
+      {!isMobile && !ready && <DesktopGalleryPreview onSelect={onSelect} loading={use3D} />}
 
       {use3D && (
         <div
@@ -863,6 +885,10 @@ function AboutPage({ onSelect }) {
           </div>
         </div>
       </div>
+      <div className="archive-route-links">
+        <a href="#/work">Browse the archive</a>
+        <a href="#/journal">Read the studio notes</a>
+      </div>
     </PageShell>
   );
 }
@@ -886,6 +912,10 @@ function JournalPage({ onSelect }) {
             </article>
           );
         })}
+      </div>
+      <div className="archive-route-links">
+        <a href="#/about">About the artist</a>
+        <a href="#/contact">Get in touch</a>
       </div>
     </PageShell>
   );

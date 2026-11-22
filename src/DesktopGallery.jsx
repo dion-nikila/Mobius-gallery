@@ -184,8 +184,8 @@ function MobiusBand() {
         />
       </mesh>
 
-      <Line points={topEdge} color="#42baff" lineWidth={5} transparent opacity={0.14} depthWrite={false} />
-      <Line points={bottomEdge} color="#42baff" lineWidth={4} transparent opacity={0.11} depthWrite={false} />
+      <Line points={topEdge} color="#42baff" lineWidth={5} transparent opacity={0.115} depthWrite={false} />
+      <Line points={bottomEdge} color="#42baff" lineWidth={4} transparent opacity={0.09} depthWrite={false} />
       <Line points={topEdge} color="#f4fcff" lineWidth={1.82} transparent opacity={1} />
       <Line points={bottomEdge} color="#74ceff" lineWidth={1.38} transparent opacity={0.86} />
       <Line points={centerLine} color="#e4f8ff" lineWidth={0.92} transparent opacity={0.62} />
@@ -656,7 +656,7 @@ function Scene({ artworks, motionRef, onSelect, onProgress }) {
 
     if (group.current) {
       const intro = smoothstep(0.05, 2.2, state.clock.elapsedTime);
-      const targetScale = 0.82 + intro * 0.095;
+      const targetScale = 0.82 + intro * 0.095 * THREE.MathUtils.smoothstep(state.size.width / state.size.height, 1, 1.55);
       const nextScale = THREE.MathUtils.damp(group.current.scale.x, targetScale, 3.2, safeDelta);
       group.current.scale.setScalar(nextScale);
       group.current.position.y = THREE.MathUtils.damp(
