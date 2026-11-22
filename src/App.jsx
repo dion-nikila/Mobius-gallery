@@ -4,6 +4,7 @@ import CommissionPage from "./CommissionPage";
 import { commissionLink, INSTAGRAM_URL } from "./commissions";
 
 const TAU = Math.PI * 2;
+const landingTitle = "sycophantic, prophetic, socratic junkie wannabe";
 const DesktopGallery = lazy(() => import("./DesktopGallery"));
 
 const artworkImageModules = import.meta.glob("../art/*.{avif,gif,jpeg,jpg,png,webp}", {
@@ -221,21 +222,24 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="artwork-title"
-            className="archive-dialog relative grid max-h-[94dvh] w-full max-w-6xl grid-cols-1 overflow-y-auto overscroll-contain md:grid-cols-[1.4fr_0.6fr]"
+            className="archive-dialog relative grid max-h-[94dvh] w-full max-w-6xl grid-cols-1 overflow-y-auto overscroll-contain md:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]"
             initial={{ scale: 0.97, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.97, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
+            <div className="exhibit-toolbar">
+              <span aria-live="polite">Artwork {index + 1} / {artworks.length}</span>
+              <button
               type="button"
               aria-label="Close artwork detail"
               onClick={onClose}
-              className="absolute right-2 top-2 z-10 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/55 text-xl leading-none text-white backdrop-blur-sm transition hover:bg-sky-900"
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/55 text-xl leading-none text-white backdrop-blur-sm transition hover:bg-sky-900"
             >
               ×
-            </button>
+              </button>
+            </div>
 
             <div className="exhibit-stage">
               <ArtworkImage key={art.image} art={art} />
@@ -245,7 +249,6 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(125,211,252,0.10),transparent_32%)]" />
 
               <div className="relative">
-                <p className="exhibit-index" aria-live="polite">Artwork {index + 1} / {artworks.length}</p>
                 <h2 id="artwork-title" className="exhibit-title">{art.title}</h2>
                 <a href={art.image} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-sm text-sky-100 underline underline-offset-4">Open full-resolution image</a>
                 <div className="exhibit-film" aria-label="Browse nearby artwork">
@@ -338,7 +341,7 @@ function createMobileMobiusVisual() {
   const halfWidth = 0.72;
   const centerX = 195;
   const centerY = 248;
-  const scale = 86;
+  const scale = 90;
 
   function project(u, v) {
     const x = (radius + v * Math.cos(u / 2)) * Math.cos(u);
@@ -357,9 +360,9 @@ function createMobileMobiusVisual() {
     return Number(value.toFixed(2));
   }
 
-  function pathFor(v, samples = 120) {
+  function pathFor(v, samples = 120, turns = 1) {
     return Array.from({ length: samples + 1 }, (_, index) => {
-      const point = project((index / samples) * TAU, v);
+      const point = project((index / samples) * TAU * turns, v);
       return `${index === 0 ? "M" : "L"}${fmt(point.x)} ${fmt(point.y)}`;
     }).join(" ");
   }
@@ -408,6 +411,8 @@ function createMobileMobiusVisual() {
     topEdge: pathFor(halfWidth),
     bottomEdge: pathFor(-halfWidth),
     centerPath: pathFor(0, 180),
+    beadOuterPath: pathFor(halfWidth * 0.9, 240, 2),
+    beadInnerPath: pathFor(halfWidth * 0.45, 240, 2),
     innerPath: pathFor(halfWidth * 0.34),
     outerPath: pathFor(-halfWidth * 0.34),
   };
@@ -419,6 +424,7 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
   const pointerRef = useRef({ active: false, startX: 0, startY: 0 });
   const suppressClick = useRef(0);
   const count = artworks.length;
+  const reduceMotion = useReducedMotion();
   const mobileMobius = useMemo(() => createMobileMobiusVisual(), []);
 
   const advance = useCallback((direction) => {
@@ -518,7 +524,7 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
               <stop offset="1" stopColor="rgba(255,255,255,0.12)" />
             </linearGradient>
             <filter id="mobileMobiusGlow" x="-20%" y="-35%" width="140%" height="170%">
-              <feGaussianBlur stdDeviation="3.2" result="blur" />
+              <feGaussianBlur stdDeviation="4.1" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
@@ -584,15 +590,17 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
               />
             ))}
 
-            <circle r="3.2" fill="rgba(255,255,255,0.78)">
-              <animateMotion dur="5.6s" repeatCount="indefinite" path={mobileMobius.centerPath} />
-            </circle>
-            <circle r="2.2" fill="rgba(187,226,244,0.62)">
-              <animateMotion begin="-2.8s" dur="5.6s" repeatCount="indefinite" path={mobileMobius.centerPath} />
-            </circle>
-            <circle r="1.55" fill="rgba(255,255,255,0.46)">
-              <animateMotion begin="-1.4s" dur="7.4s" repeatCount="indefinite" path={mobileMobius.centerPath} />
-            </circle>
+            {!reduceMotion && [
+              [mobileMobius.beadOuterPath, "21s", "0s", 3],
+              [mobileMobius.beadOuterPath, "21s", "-10.5s", 2],
+              [mobileMobius.beadInnerPath, "24s", "-5s", 2.4],
+              [mobileMobius.beadInnerPath, "24s", "-17s", 1.6],
+              [mobileMobius.centerPath, "13s", "-3s", 1.5],
+            ].map(([path, duration, begin, radius]) => (
+              <circle key={begin} r={radius} fill="#def7ff" filter="url(#mobileMobiusGlow)">
+                <animateMotion dur={duration} begin={begin} repeatCount="indefinite" path={path} />
+              </circle>
+            ))}
           </g>
         </svg>
 
@@ -686,20 +694,20 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
 
       <div className="relative z-20 mt-5">
         <h1 className="max-w-sm text-[clamp(1.35rem,5.8vw,1.8rem)] font-semibold leading-[1.08] tracking-[-0.02em] text-white">
-          The Chinese Satellite Archive
+          {landingTitle}
         </h1>
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-1 flex flex-wrap gap-x-5">
           <button
             type="button"
             onClick={() => navigate("/work")}
-            className="rounded-full bg-sky-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-black transition hover:bg-white"
+            className="landing-link"
           >
-            Browse art to buy
+            Browse art
           </button>
           <button
             type="button"
             onClick={() => navigate("/commissions")}
-            className="rounded-full border border-sky-100/20 bg-black/20 px-4 py-2.5 text-xs uppercase tracking-[0.16em] text-sky-100/72 transition hover:border-sky-100/40 hover:text-white"
+            className="landing-link"
           >
             Commission a piece
           </button>
@@ -801,10 +809,10 @@ function HomePage({ onSelect }) {
           </div>
 
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-5 pb-8 md:px-10 md:pb-10">
-            <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">The Chinese Satellite Archive</h1>
-            <div className="pointer-events-auto mt-5 flex w-fit flex-wrap gap-3">
-              <a href="#/work" className="inline-flex min-h-11 items-center rounded-full bg-sky-50 px-4 text-sm font-semibold text-[#07111b] hover:bg-white">Browse art to buy</a>
-              <a href={commissionLink()} className="inline-flex min-h-11 items-center rounded-full border border-sky-100/24 bg-black/25 px-4 text-sm font-semibold text-sky-100 hover:border-sky-100/60">Commission a piece</a>
+            <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">{landingTitle}</h1>
+            <div className="pointer-events-auto mt-2 flex w-fit flex-wrap gap-x-5">
+              <a href="#/work" className="landing-link">Browse art</a>
+              <a href={commissionLink()} className="landing-link">Commission a piece</a>
             </div>
           </div>
         </>

@@ -176,7 +176,7 @@ function MobiusBand() {
         <meshBasicMaterial
           color="#6fd6ff"
           transparent
-          opacity={0.07}
+          opacity={0.11}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
           side={THREE.DoubleSide}
@@ -184,6 +184,8 @@ function MobiusBand() {
         />
       </mesh>
 
+      <Line points={topEdge} color="#42baff" lineWidth={5} transparent opacity={0.14} depthWrite={false} />
+      <Line points={bottomEdge} color="#42baff" lineWidth={4} transparent opacity={0.11} depthWrite={false} />
       <Line points={topEdge} color="#f4fcff" lineWidth={1.82} transparent opacity={1} />
       <Line points={bottomEdge} color="#74ceff" lineWidth={1.38} transparent opacity={0.86} />
       <Line points={centerLine} color="#e4f8ff" lineWidth={0.92} transparent opacity={0.62} />
@@ -291,7 +293,7 @@ function TwistAccent({ motionRef }) {
   );
 }
 
-function FlowBeads({ motionRef }) {
+function FlowBeads() {
   const beads = useRef([]);
   const beadData = useMemo(
     () => [
@@ -300,6 +302,8 @@ function FlowBeads({ motionRef }) {
       { v: -STRIP_HALF_WIDTH, offset: 0.85, size: 0.032, color: "#7fd0ff", speed: 1.0 },
       { v: -STRIP_HALF_WIDTH, offset: 3.15, size: 0.022, color: "#d4f3ff", speed: 0.85 },
       { v: 0, offset: 4.1, size: 0.018, color: "#ffffff", speed: 0.75 },
+      { v: STRIP_HALF_WIDTH * 0.45, offset: 7.6, size: 0.026, color: "#d4f3ff", speed: 0.88 },
+      { v: STRIP_HALF_WIDTH * -0.72, offset: 10.2, size: 0.022, color: "#8fd6ff", speed: 0.95 },
     ],
     []
   );
@@ -312,14 +316,15 @@ function FlowBeads({ motionRef }) {
       if (!mesh) return;
 
       const u = mod(
-        motionRef.current.progress * bead.speed + bead.offset + state.clock.elapsedTime * 0.08,
-        TAU
+        bead.offset + state.clock.elapsedTime * 0.34 * bead.speed,
+        bead.v === 0 ? TAU : 2 * TAU
       );
-      const frame = mobiusFrame(u, bead.v, STRIP_RADIUS);
+      // Off-center lanes switch sides after one turn and close after two.
+      const point = mobiusPoint(u, bead.v);
       const intro = smoothstep(0.25, 2.3, state.clock.elapsedTime);
       const pulse = (0.8 + Math.sin(state.clock.elapsedTime * 2.2 + i) * 0.2) * intro;
 
-      mesh.position.copy(frame.position.clone().add(frame.normal.clone().multiplyScalar(0.035)));
+      mesh.position.copy(point);
       mesh.scale.setScalar(THREE.MathUtils.damp(mesh.scale.x || 0, pulse, 8, safeDelta));
       mesh.material.opacity = THREE.MathUtils.damp(mesh.material.opacity, 0.86 * intro, 5, safeDelta);
     });
@@ -651,7 +656,7 @@ function Scene({ artworks, motionRef, onSelect, onProgress }) {
 
     if (group.current) {
       const intro = smoothstep(0.05, 2.2, state.clock.elapsedTime);
-      const targetScale = 0.82 + intro * 0.05;
+      const targetScale = 0.82 + intro * 0.095;
       const nextScale = THREE.MathUtils.damp(group.current.scale.x, targetScale, 3.2, safeDelta);
       group.current.scale.setScalar(nextScale);
       group.current.position.y = THREE.MathUtils.damp(
@@ -687,7 +692,7 @@ function Scene({ artworks, motionRef, onSelect, onProgress }) {
         <MobiusBand />
         <FloatingPoetry />
         <TwistAccent motionRef={motionRef} />
-        <FlowBeads motionRef={motionRef} />
+        <FlowBeads />
 
         {artworks.map((art, i) => (
           <MemoizedArtworkPanel
