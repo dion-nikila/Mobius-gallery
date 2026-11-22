@@ -154,3 +154,38 @@ form[tabindex] {
   .journal-entry:nth-child(2) { margin-top: 2rem; }
   .journal-entry:nth-child(3) { margin-top: 4rem; }
 }
+
+.archive-grid .archive-tile img { aspect-ratio: 4 / 5; }
+.archive-grid .archive-tile:first-child { grid-column: span 2; }
+.archive-grid .archive-tile:first-child img { aspect-ratio: 2 / 1; object-position: center 42%; }
+.archive-grid .archive-tile button:focus-visible { outline-offset: -4px; }
+
+.archive-about-copy {
+  background: linear-gradient(110deg, #101f30, #071019 70%);
+  border-left: 2px solid #7dd3fc;
+}
+
+.journal-entry { position: relative; }
+.journal-entry::before {
+  content: "";
+  display: block;
+  height: 6px;
+  background: repeating-linear-gradient(90deg, #7dd3fc 0 1px, transparent 1px 8px);
+  opacity: .55;
+}
+
+@media (min-width: 64rem) {
+  .archive-grid .archive-tile:first-child img { aspect-ratio: 8 / 5; }
+  .archive-editorial .archive-collage { grid-row: 1; grid-column: 1 / -1; aspect-ratio: 2.45; }
+  .archive-about-copy {
+    grid-row: 1;
+    grid-column: 2;
+    z-index: 1;
+    align-self: end;
+    margin: 0 1.5rem 1.5rem 0;
+    box-shadow: 0 12px 40px #000a;
+  }
+  .archive-editorial .archive-collage button:nth-child(1) { grid-area: 1 / 1 / 9 / 7; }
+  .archive-editorial .archive-collage button:nth-child(2) { grid-area: 1 / 7 / 5 / 10; }
+  .archive-editorial .archive-collage button:nth-child(3) { grid-area: 1 / 10 / 5 / 13; }
+}

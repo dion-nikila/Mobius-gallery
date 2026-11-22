@@ -7,19 +7,16 @@ export const offers = [
   {
     id: "portrait",
     title: "Portrait or character",
-    price: "From LKR 6,500 / US$55",
     description: "One person or original character, a simple background, and a high-resolution digital image for personal use.",
   },
   {
     id: "illustration",
     title: "Custom illustration",
-    price: "From LKR 10,000 / US$90",
     description: "A more detailed personal piece with room for a second subject, a setting, or a more elaborate composition.",
   },
   {
     id: "commercial",
     title: "Cover, poster or commercial art",
-    price: "From LKR 18,000 / US$150",
     description: "Original artwork for a release, event, publication, or campaign. The quote covers the formats and usage we agree on.",
   },
 ];

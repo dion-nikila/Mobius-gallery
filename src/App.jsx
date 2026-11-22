@@ -247,6 +247,7 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
               <div className="relative">
                 <p className="exhibit-index" aria-live="polite">Artwork {index + 1} / {artworks.length}</p>
                 <h2 id="artwork-title" className="exhibit-title">{art.title}</h2>
+                <a href={art.image} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-sm text-sky-100 underline underline-offset-4">Open full-resolution image</a>
                 <div className="exhibit-film" aria-label="Browse nearby artwork">
                   {neighbors.map((offset) => {
                     const piece = artworks[mod(index + offset, artworks.length)];
@@ -291,13 +292,13 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
 
 function GridGallery({ artworksToShow, onSelect }) {
   return (
-    <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
+    <div className="archive-grid mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
       {artworksToShow.map((art) => (
         <article key={art.title} className="archive-tile flex min-w-0 flex-col">
           <button type="button" onClick={() => onSelect(art)} className="group block w-full text-left">
             <div className="overflow-hidden">
               <img src={art.thumbnail} alt="" loading="lazy" decoding="async"
-                className="aspect-[4/5] w-full bg-[#070c15] object-cover transition duration-300 group-hover:scale-105 sm:aspect-[6/5]" />
+                className="w-full bg-[#070c15] object-cover transition duration-300 group-hover:scale-105" />
             </div>
             <h2 className="break-words px-3 py-3 text-sm font-semibold leading-snug text-white sm:px-5 sm:text-xl">{art.title}</h2>
           </button>
@@ -685,11 +686,8 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
 
       <div className="relative z-20 mt-5">
         <h1 className="max-w-sm text-[clamp(1.35rem,5.8vw,1.8rem)] font-semibold leading-[1.08] tracking-[-0.02em] text-white">
-          “I want to believe”
+          The Chinese Satellite Archive
         </h1>
-        <p className="mt-3 max-w-sm text-xs leading-5 text-sky-100/52">
-          Phoebe Bridgers · Chinese Satellite
-        </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <button
             type="button"
@@ -803,8 +801,7 @@ function HomePage({ onSelect }) {
           </div>
 
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-5 pb-8 md:px-10 md:pb-10">
-            <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">“I want to believe”</h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-sky-100/70 md:text-base">Phoebe Bridgers · Chinese Satellite</p>
+            <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">The Chinese Satellite Archive</h1>
             <div className="pointer-events-auto mt-5 flex w-fit flex-wrap gap-3">
               <a href="#/work" className="inline-flex min-h-11 items-center rounded-full bg-sky-50 px-4 text-sm font-semibold text-[#07111b] hover:bg-white">Browse art to buy</a>
               <a href={commissionLink()} className="inline-flex min-h-11 items-center rounded-full border border-sky-100/24 bg-black/25 px-4 text-sm font-semibold text-sky-100 hover:border-sky-100/60">Commission a piece</a>
@@ -821,7 +818,7 @@ function WorkPage({ onSelect }) {
     <PageShell
       eyebrow="The Chinese Satellite Archive"
       title="The archive"
-      intro="See something you’d like to own? Ask about the original or a print. I’ll confirm availability, the price, and any delivery costs before you pay."
+      intro="Explore the drawings, or ask about an original or a print."
       aside={
         <a href={commissionLink()} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-sky-100 underline underline-offset-4">Commission a piece</a>
       }
@@ -848,7 +845,7 @@ function AboutPage({ onSelect }) {
     <PageShell eyebrow="About the artist" title="Dion Nikila" intro="I draw characters, then build strange places for them to live.">
       <div className="archive-editorial">
         <ArchiveCollage pieces={[artworks[4], artworks[1], artworks[8]]} onSelect={onSelect} />
-        <div className="archive-panel space-y-5 p-6 text-base leading-8 text-sky-100/85 sm:p-8">
+        <div className="archive-about-copy space-y-5 p-6 text-base leading-8 text-sky-100/85 sm:p-8">
           <h2 className="exhibit-title">A gallery with one side</h2>
           <p>I’m drawn to characters you can recognize from a silhouette or a single gesture. This archive brings those studies together in a gallery that folds back on itself.</p>
           <p>I also make portraits, original characters, covers, and posters. Tell me a little about the world you want the work to belong to.</p>

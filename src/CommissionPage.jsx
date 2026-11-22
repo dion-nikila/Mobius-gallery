@@ -7,8 +7,8 @@ const button = "inline-flex min-h-12 items-center justify-center rounded-full bg
 
 const steps = [
   ["Send your request", "Tell me what you’re looking for and leave an email for my reply."],
-  ["Get a quote", "I’ll confirm the price, timing, and what’s included. For existing work, I’ll check the format and delivery cost."],
-  ["Book your commission", "A 50% deposit reserves the slot once you accept the quote. Standard personal commissions include one sketch revision."],
+  ["Get a quote", "I’ll confirm timing and what’s included. For existing work, I’ll check available formats and delivery."],
+  ["Book your commission", "A deposit reserves the slot once you accept the quote. Standard personal commissions include one sketch revision."],
   ["Receive the art", "I’ll send the finished digital files once the balance clears. We’ll agree on delivery separately for physical work."],
 ];
 
@@ -19,7 +19,6 @@ function RequestForm({ type, artwork, onChoose, formRef }) {
   const status = submission?.status === "sending" || submission?.context === context ? submission.status : "idle";
   const isBuying = type === "artwork";
   const isGeneral = type === "general";
-  const chosen = offers.find((offer) => offer.id === type);
 
   async function submit(event) {
     event.preventDefault();
@@ -42,7 +41,7 @@ function RequestForm({ type, artwork, onChoose, formRef }) {
         type,
         reference: artwork?.title,
         email,
-        message: note || "Please confirm availability, price, and delivery options.",
+        message: note || "Please confirm availability and delivery options.",
         website: "",
       });
       setSubmission({ status: "sent", context, email });
@@ -76,7 +75,6 @@ function RequestForm({ type, artwork, onChoose, formRef }) {
             {requestTypes.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
           </select>
         </label>}
-        {chosen && <p className="mt-1.5 text-sm font-semibold text-sky-200">{chosen.price}</p>}
 
         {artwork && (
           <div className="mt-4 flex items-center gap-3 rounded-lg border border-white/12 bg-black/20 p-3">
@@ -151,7 +149,6 @@ export default function CommissionPage({ type, artwork, formRef, isContact, visu
               <button key={offer.id} type="button" aria-pressed={selected === offer.id} onClick={() => choose(offer.id, artwork?.title, true)}
                 className="archive-panel p-4 text-left hover:border-sky-100/45 aria-pressed:border-sky-300/55 aria-pressed:bg-sky-300/[.08]">
                 <span className="block font-semibold">{offer.title}</span>
-                <span className="mt-1 block text-sm font-semibold text-sky-200">{offer.price}</span>
                 <span className="mt-1.5 block text-sm leading-6 text-sky-100/72">{offer.description}</span>
               </button>
             ))}
