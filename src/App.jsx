@@ -1,8 +1,10 @@
-import { memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, useFrame, useLoader } from "@react-three/fiber";
-import { Environment, Line, useCursor, useProgress } from "@react-three/drei";
-import { motion, AnimatePresence } from "framer-motion";
-import * as THREE from "three";
+import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence, MotionConfig, useReducedMotion } from "framer-motion";
+import CommissionPage from "./CommissionPage";
+import { commissionLink, INSTAGRAM_URL, WHATSAPP_URL } from "./commissions";
+
+const TAU = Math.PI * 2;
+const DesktopGallery = lazy(() => import("./DesktopGallery"));
 
 const artworkImageModules = import.meta.glob("../art/*.{avif,gif,jpeg,jpg,png,webp}", {
   eager: true,
@@ -52,65 +54,55 @@ const artworks = artworkEntries.map(({ image, title }) => ({
   image,
   thumbnail: artworkThumbnails.get(title) ?? image,
   year: "2026",
-  medium: "Original artwork",
+  medium: "Portfolio study",
 }));
 
 const studioNotes = [
   {
-    title: "Building The Endless Archive",
-    date: "May 2026",
+    title: "Why the strip loops",
+    date: "The gallery",
     summary:
-      "How the Möbius interface became a fitting structure for a portfolio about loops, memory, and recurring symbols.",
+      "A Möbius strip has one continuous surface. I used that shape to make a gallery you can turn and return to, instead of a row of images with an obvious beginning and end.",
   },
   {
-    title: "Texture Before Meaning",
-    date: "April 2026",
+    title: "Character studies",
+    date: "The archive",
     summary:
-      "A process note on letting marks, scans, and accidental gradients decide where a piece wants to go.",
+      "The archive brings together drawings of characters from manga, anime, and animation. They’re a record of what I notice in those designs, from a silhouette to a pose or expression.",
   },
   {
-    title: "Commission Windows",
-    date: "Spring 2026",
+    title: "Starting a commission",
+    date: "The studio",
     summary:
-      "Current availability for portraits, surreal album artwork, editorial images, and site-specific print sets.",
+      "A subject, a deadline, and a few references are enough to start. If a piece in the archive has the mood or treatment you want, mention its title when you get in touch.",
   },
-];
-
-const services = [
-  "Original artwork and private sales",
-  "Limited edition prints",
-  "Portrait and editorial commissions",
-  "Album, book, and campaign imagery",
 ];
 
 const routes = [
-  { path: "/", label: "home" },
-  { path: "/work", label: "work" },
-  { path: "/about", label: "about" },
-  { path: "/journal", label: "journal" },
-  { path: "/contact", label: "contact" },
+  { path: "/", label: "Home" },
+  { path: "/work", label: "Browse art" },
+  { path: "/about", label: "About" },
+  { path: "/journal", label: "Journal" },
+  { path: "/commissions", label: "Get a quote" },
 ];
 
-const CONTACT_EMAIL = "dionnikila330@gmail.com";
-const CONTACT_PHONE = "076702100";
+function readLocation() {
+  const [hashPath, search = ""] = window.location.hash.slice(1).split("?");
+  const legacyPath = "/" + (window.location.pathname.split("/").filter(Boolean).at(-1) ?? "");
+  const path = hashPath.startsWith("/") ? hashPath.replace(/\/+$/, "") || "/" : legacyPath;
+  const params = new URLSearchParams(search);
+  const isContact = path === "/contact";
 
-function normalizePath(pathname) {
-  if (pathname === "/" || pathname === "") return "/";
-  const clean = pathname.replace(/\/+$/, "");
-  return routes.some((route) => route.path === clean) ? clean : "/";
+  return {
+    path: isContact ? "/commissions" : routes.find((route) => route.path === path)?.path ?? "/",
+    type: isContact ? "general" : params.get("type"),
+    isContact,
+    reference: params.get("reference"),
+  };
 }
 
 function mod(n, m) {
   return ((n % m) + m) % m;
-}
-
-function smoothstep(edge0, edge1, x) {
-  const t = THREE.MathUtils.clamp((x - edge0) / (edge1 - edge0), 0, 1);
-  return t * t * (3 - 2 * t);
-}
-
-function expFollow(speed, delta) {
-  return 1 - Math.exp(-speed * Math.min(delta, 0.033));
 }
 
 function useDocumentVisibility() {
@@ -145,722 +137,77 @@ function useIsMobile() {
   return isMobile;
 }
 
-const TAU = Math.PI * 2;
-
-const STRIP_RADIUS = 2.66;
-const STRIP_HALF_WIDTH = 0.6;
-const PANEL_DENSITY_BASE = 16;
-const PANEL_ASPECT = 0.52 / 0.94;
-const IDLE_LOOP_SPEED = 0.022;
-const blockedRaycast = () => null;
-
-function mobiusPoint(u, v, radius = STRIP_RADIUS) {
-  const half = u / 2;
-  const r = radius + v * Math.cos(half);
-
-  return new THREE.Vector3(
-    r * Math.cos(u),
-    v * Math.sin(half),
-    r * Math.sin(u)
-  );
-}
-
-function mobiusFrame(u, v = 0, radius = STRIP_RADIUS) {
-  const eps = 0.001;
-  const p = mobiusPoint(u, v, radius);
-  const pu1 = mobiusPoint(u + eps, v, radius);
-  const pu0 = mobiusPoint(u - eps, v, radius);
-  const pv1 = mobiusPoint(u, v + eps, radius);
-  const pv0 = mobiusPoint(u, v - eps, radius);
-
-  const tangent = pu1.sub(pu0).normalize();
-  const across = pv1.sub(pv0).normalize();
-  const normal = new THREE.Vector3().crossVectors(across, tangent).normalize();
-
-  return { position: p, tangent, across, normal };
-}
-
-function createMobiusGeometry(
-  radius = STRIP_RADIUS,
-  halfWidth = STRIP_HALF_WIDTH,
-  radialSegments = 420,
-  widthSegments = 30
-) {
-  const positions = [];
-  const uvs = [];
-  const indices = [];
-
-  for (let i = 0; i <= radialSegments; i++) {
-    const u = (i / radialSegments) * TAU;
-
-    for (let j = 0; j <= widthSegments; j++) {
-      const v = (j / widthSegments - 0.5) * halfWidth * 2;
-      const p = mobiusPoint(u, v, radius);
-      positions.push(p.x, p.y, p.z);
-      uvs.push(i / radialSegments, j / widthSegments);
-    }
-  }
-
-  const row = widthSegments + 1;
-
-  for (let i = 0; i < radialSegments; i++) {
-    for (let j = 0; j < widthSegments; j++) {
-      const a = i * row + j;
-      const b = (i + 1) * row + j;
-      const c = (i + 1) * row + j + 1;
-      const d = i * row + j + 1;
-      indices.push(a, b, d, b, c, d);
-    }
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
-  geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-
-  return geometry;
-}
-
-function createLoopPoints(v, count = 480) {
-  const points = [];
-
-  for (let i = 0; i <= count; i++) {
-    const u = (i / count) * TAU;
-    const p = mobiusPoint(u, v, STRIP_RADIUS);
-    points.push([p.x, p.y, p.z]);
-  }
-
-  return points;
-}
-
-function createRibs() {
-  return Array.from({ length: 52 }, (_, i) => {
-    const u = (i / 52) * TAU;
-
-    return Array.from({ length: 18 }, (_, j) => {
-      const v = THREE.MathUtils.lerp(-STRIP_HALF_WIDTH, STRIP_HALF_WIDTH, j / 17);
-      const p = mobiusPoint(u, v, STRIP_RADIUS);
-      return [p.x, p.y, p.z];
-    });
-  });
-}
-
-function useArtworkTexture(image) {
-  const loadedTexture = useLoader(THREE.TextureLoader, image);
-  const texture = useMemo(() => {
-    const nextTexture = loadedTexture.clone();
-    const imageAspect =
-      loadedTexture.image?.width && loadedTexture.image?.height
-        ? loadedTexture.image.width / loadedTexture.image.height
-        : PANEL_ASPECT;
-
-    if (imageAspect > PANEL_ASPECT) {
-      nextTexture.repeat.set(PANEL_ASPECT / imageAspect, 1);
-      nextTexture.offset.set((1 - nextTexture.repeat.x) / 2, 0);
-    } else {
-      nextTexture.repeat.set(1, imageAspect / PANEL_ASPECT);
-      nextTexture.offset.set(0, (1 - nextTexture.repeat.y) / 2);
-    }
-
-    nextTexture.colorSpace = THREE.SRGBColorSpace;
-    nextTexture.anisotropy = 12;
-    nextTexture.wrapS = THREE.ClampToEdgeWrapping;
-    nextTexture.wrapT = THREE.ClampToEdgeWrapping;
-    nextTexture.needsUpdate = true;
-
-    return nextTexture;
-  }, [loadedTexture]);
-
-  useEffect(() => () => texture.dispose(), [texture]);
-
-  return texture;
-}
-
-function MobiusBand() {
-  const geometry = useMemo(() => createMobiusGeometry(), []);
-  const topEdge = useMemo(() => createLoopPoints(STRIP_HALF_WIDTH), []);
-  const bottomEdge = useMemo(() => createLoopPoints(-STRIP_HALF_WIDTH), []);
-  const centerLine = useMemo(() => createLoopPoints(0), []);
-  const blueGuide = useMemo(() => createLoopPoints(-STRIP_HALF_WIDTH * 0.48), []);
-  const paleGuide = useMemo(() => createLoopPoints(STRIP_HALF_WIDTH * 0.48), []);
-  const ribs = useMemo(() => createRibs(), []);
+function ArtworkImage({ art }) {
+  const [imageState, setImageState] = useState("loading");
 
   return (
-    <group>
-      <mesh geometry={geometry} castShadow receiveShadow>
-        <meshPhysicalMaterial
-          color="#081321"
-          roughness={0.34}
-          metalness={0.38}
-          clearcoat={0.9}
-          clearcoatRoughness={0.16}
-          transparent
-          opacity={0.74}
-          depthWrite={false}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      <mesh geometry={geometry} scale={[1.012, 1.012, 1.012]}>
-        <meshBasicMaterial
-          color="#6fd6ff"
-          transparent
-          opacity={0.07}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          side={THREE.DoubleSide}
-          toneMapped={false}
-        />
-      </mesh>
-
-      <Line points={topEdge} color="#f4fcff" lineWidth={1.82} transparent opacity={1} />
-      <Line points={bottomEdge} color="#74ceff" lineWidth={1.38} transparent opacity={0.86} />
-      <Line points={centerLine} color="#e4f8ff" lineWidth={0.92} transparent opacity={0.62} />
-      <Line points={blueGuide} color="#83bdff" lineWidth={0.76} transparent opacity={0.46} />
-      <Line points={paleGuide} color="#c6efff" lineWidth={0.74} transparent opacity={0.4} />
-
-      {ribs.map((rib, i) => (
-        <Line
-          key={i}
-          points={rib}
-          color="#dff3ff"
-          lineWidth={0.56}
-          transparent
-          opacity={i % 4 === 0 ? 0.32 : 0.1}
-        />
-      ))}
-    </group>
-  );
-}
-
-function TwistAccent({ motionRef }) {
-  const tracer = useRef(null);
-  const halo = useRef(null);
-
-  const accentPath = useMemo(
-    () => createLoopPoints(STRIP_HALF_WIDTH * 0.82),
-    []
-  );
-
-  useFrame((state, delta) => {
-    const safeDelta = Math.min(delta, 0.033);
-    const intro = smoothstep(0.3, 2.2, state.clock.elapsedTime);
-
-    const u = mod(
-      motionRef.current.progress * 1.02 + state.clock.elapsedTime * 0.11,
-      TAU
-    );
-
-    const frame = mobiusFrame(u, STRIP_HALF_WIDTH * 0.82, STRIP_RADIUS);
-    const target = frame.position
-      .clone()
-      .add(frame.normal.clone().multiplyScalar(0.04));
-
-    if (tracer.current) {
-      tracer.current.position.lerp(target, 1 - Math.exp(-8 * safeDelta));
-      tracer.current.material.opacity = THREE.MathUtils.damp(
-        tracer.current.material.opacity,
-        0.95 * intro,
-        5,
-        safeDelta
-      );
-    }
-
-    if (halo.current) {
-      halo.current.position.lerp(target, 1 - Math.exp(-6 * safeDelta));
-      halo.current.scale.setScalar(
-        THREE.MathUtils.damp(
-          halo.current.scale.x || 0,
-          1 + Math.sin(state.clock.elapsedTime * 2.4) * 0.08,
-          5,
-          safeDelta
-        )
-      );
-      halo.current.material.opacity = THREE.MathUtils.damp(
-        halo.current.material.opacity,
-        0.18 * intro,
-        4,
-        safeDelta
-      );
-    }
-  });
-
-  return (
-    <group>
-      <Line
-        points={accentPath}
-        color="#9adfff"
-        lineWidth={1.08}
-        transparent
-        opacity={0.2}
+    <div className="relative h-[min(52dvh,520px)] min-h-[180px] overflow-hidden bg-black md:h-auto md:min-h-[min(70dvh,640px)]">
+      {imageState !== "ready" && (
+        <img src={art.thumbnail} alt={art.title} className="absolute inset-0 h-full w-full object-contain" />
+      )}
+      <img
+        src={art.image}
+        alt={imageState === "ready" ? art.title : ""}
+        aria-hidden={imageState !== "ready"}
+        decoding="async"
+        data-artwork-image
+        className={`absolute inset-0 h-full w-full object-contain ${imageState === "ready" ? "" : "opacity-0"}`}
+        onLoad={() => setImageState("ready")}
+        onError={() => setImageState("unavailable")}
       />
-
-      <mesh ref={halo}>
-        <sphereGeometry args={[0.07, 18, 18]} />
-        <meshBasicMaterial
-          color="#7fd8ff"
-          transparent
-          opacity={0}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-
-      <mesh ref={tracer}>
-        <sphereGeometry args={[0.022, 16, 16]} />
-        <meshBasicMaterial
-          color="#ffffff"
-          transparent
-          opacity={0}
-          toneMapped={false}
-        />
-      </mesh>
-    </group>
+      {imageState === "unavailable" && (
+        <p role="status" className="absolute inset-x-0 bottom-0 bg-black/80 px-3 py-2 text-center text-xs text-white/80">Showing the artwork preview.</p>
+      )}
+    </div>
   );
 }
-
-function FlowBeads({ motionRef }) {
-  const beads = useRef([]);
-  const beadData = useMemo(
-    () => [
-      { v: STRIP_HALF_WIDTH, offset: 0.0, size: 0.036, color: "#e9fbff", speed: 1.0 },
-      { v: STRIP_HALF_WIDTH, offset: 2.1, size: 0.026, color: "#8fd6ff", speed: 0.9 },
-      { v: -STRIP_HALF_WIDTH, offset: 0.85, size: 0.032, color: "#7fd0ff", speed: 1.0 },
-      { v: -STRIP_HALF_WIDTH, offset: 3.15, size: 0.022, color: "#d4f3ff", speed: 0.85 },
-      { v: 0, offset: 4.1, size: 0.018, color: "#ffffff", speed: 0.75 },
-    ],
-    []
-  );
-
-  useFrame((state, delta) => {
-    const safeDelta = Math.min(delta, 0.033);
-
-    beadData.forEach((bead, i) => {
-      const mesh = beads.current[i];
-      if (!mesh) return;
-
-      const u = mod(
-        motionRef.current.progress * bead.speed + bead.offset + state.clock.elapsedTime * 0.08,
-        TAU
-      );
-      const frame = mobiusFrame(u, bead.v, STRIP_RADIUS);
-      const intro = smoothstep(0.25, 2.3, state.clock.elapsedTime);
-      const pulse = (0.8 + Math.sin(state.clock.elapsedTime * 2.2 + i) * 0.2) * intro;
-
-      mesh.position.copy(frame.position.clone().add(frame.normal.clone().multiplyScalar(0.035)));
-      mesh.scale.setScalar(THREE.MathUtils.damp(mesh.scale.x || 0, pulse, 8, safeDelta));
-      mesh.material.opacity = THREE.MathUtils.damp(mesh.material.opacity, 0.86 * intro, 5, safeDelta);
-    });
-  });
-
-  return (
-    <group>
-      {beadData.map((bead, i) => (
-        <mesh key={i} ref={(el) => (beads.current[i] = el)}>
-          <sphereGeometry args={[bead.size, 16, 16]} />
-          <meshBasicMaterial color={bead.color} transparent opacity={0} toneMapped={false} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function FloatingPoetry() {
-  const outerRing = useRef(null);
-  const ring = useRef(null);
-  const innerRing = useRef(null);
-
-  useFrame((state, delta) => {
-    const safeDelta = Math.min(delta, 0.033);
-    const intro = smoothstep(0.45, 2.6, state.clock.elapsedTime);
-
-    if (outerRing.current) {
-      outerRing.current.rotation.z += safeDelta * 0.016;
-      outerRing.current.material.opacity = THREE.MathUtils.damp(
-        outerRing.current.material.opacity,
-        0.05 * intro,
-        3,
-        safeDelta
-      );
-    }
-
-    if (ring.current) {
-      ring.current.rotation.z += safeDelta * 0.035;
-      ring.current.material.opacity = THREE.MathUtils.damp(
-        ring.current.material.opacity,
-        0.14 * intro,
-        3,
-        safeDelta
-      );
-    }
-
-    if (innerRing.current) {
-      innerRing.current.rotation.z -= safeDelta * 0.025;
-      innerRing.current.material.opacity = THREE.MathUtils.damp(
-        innerRing.current.material.opacity,
-        0.07 * intro,
-        3,
-        safeDelta
-      );
-    }
-  });
-
-  return (
-    <group>
-      <mesh ref={outerRing} position={[0, -0.055, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[3.02, 0.0024, 8, 260]} />
-        <meshBasicMaterial
-          color="#67ccff"
-          transparent
-          opacity={0}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-
-      <mesh ref={ring} position={[0, -0.035, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[2.28, 0.0038, 8, 220]} />
-        <meshBasicMaterial
-          color="#cbeeff"
-          transparent
-          opacity={0}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-
-      <mesh ref={innerRing} position={[0, -0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[1.72, 0.0026, 8, 180]} />
-        <meshBasicMaterial
-          color="#8ed8ff"
-          transparent
-          opacity={0}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-function ArtworkPanel({ index, count, art, motionRef, onSelect }) {
-  const frame = useRef(null);
-  const panel = useRef(null);
-  const ghost = useRef(null);
-  const glow = useRef(null);
-  const inlay = useRef(null);
-  const [hovered, setHovered] = useState(false);
-
-  useCursor(hovered);
-
-  const texture = useArtworkTexture(art.thumbnail);
-
-  useFrame((state, delta) => {
-    if (!frame.current || !panel.current || !ghost.current) return;
-
-    const safeDelta = Math.min(delta, 0.033);
-    const motion = motionRef.current;
-    const panelIsBlocked = performance.now() < (motion.interactionBlockedUntil ?? 0);
-
-    panel.current.raycast = panelIsBlocked ? blockedRaycast : THREE.Mesh.prototype.raycast;
-    if (panelIsBlocked && hovered) setHovered(false);
-
-    const base = ((index + 0.5) / count) * TAU;
-    const u = mod(base + motion.progress, TAU);
-    const mobius = mobiusFrame(u, 0, STRIP_RADIUS);
-
-    const localCamera = state.camera.position.clone();
-    frame.current.parent?.worldToLocal(localCamera);
-
-    const cameraDir = localCamera.clone().sub(mobius.position).normalize();
-
-    let yAxis = mobius.across.clone().normalize();
-    let zAxis = mobius.normal.clone().normalize();
-
-    const dotToCamera = zAxis.dot(cameraDir);
-
-    if (frame.current.userData.side == null) {
-      frame.current.userData.side = dotToCamera >= 0 ? 1 : -1;
-    }
-
-    if (frame.current.userData.side === 1 && dotToCamera < -0.22) {
-      frame.current.userData.side = -1;
-    } else if (frame.current.userData.side === -1 && dotToCamera > 0.22) {
-      frame.current.userData.side = 1;
-    }
-
-    if (frame.current.userData.side === -1) {
-      yAxis.multiplyScalar(-1);
-      zAxis.multiplyScalar(-1);
-    }
-
-    const radialDirection = mobius.position.clone();
-    radialDirection.y = 0;
-    radialDirection.normalize();
-
-    const cameraRadial = localCamera.clone();
-    cameraRadial.y = 0;
-    cameraRadial.normalize();
-
-    const facingArc = (radialDirection.dot(cameraRadial) + 1) / 2;
-    const focus = smoothstep(0.12, 0.92, facingArc);
-    const backness = 1 - focus;
-
-    const cameraUp = new THREE.Vector3(0, 1, 0);
-    const uprightStrength = smoothstep(0.5, 0.95, focus);
-
-    if (uprightStrength > 0.001) {
-      const readableUp = yAxis.clone().lerp(cameraUp, uprightStrength * 0.88).normalize();
-      yAxis.copy(readableUp);
-    }
-
-    const faceAssist = focus * 0.08;
-    zAxis.lerp(cameraDir, faceAssist).normalize();
-
-    yAxis.sub(zAxis.clone().multiplyScalar(yAxis.dot(zAxis))).normalize();
-    if (yAxis.lengthSq() < 0.001) yAxis.set(0, 1, 0);
-
-    let xAxis = new THREE.Vector3().crossVectors(yAxis, zAxis).normalize();
-    yAxis = new THREE.Vector3().crossVectors(zAxis, xAxis).normalize();
-
-    if (focus > 0.55 && yAxis.dot(cameraUp) < 0) {
-      xAxis.multiplyScalar(-1);
-      yAxis.multiplyScalar(-1);
-    }
-
-    const lift = hovered ? 0.12 : 0.045 + focus * 0.04;
-    const cardCenter = mobius.position.clone().add(zAxis.clone().multiplyScalar(lift));
-    const targetQuaternion = new THREE.Quaternion().setFromRotationMatrix(
-      new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis)
-    );
-
-    const follow = expFollow(8, safeDelta);
-    if (!frame.current.userData.ready) {
-      frame.current.position.copy(cardCenter);
-      frame.current.quaternion.copy(targetQuaternion);
-      frame.current.userData.ready = true;
-    } else {
-      frame.current.position.lerp(cardCenter, follow);
-      frame.current.quaternion.slerp(targetQuaternion, follow);
-    }
-
-    const intro = smoothstep(0.05, 2.1, state.clock.elapsedTime);
-    const densityScale = Math.min(1, Math.sqrt(PANEL_DENSITY_BASE / count));
-    const targetScale =
-      (hovered ? 1.2 : 0.76 + focus * 0.44) * (0.82 + intro * 0.18) * densityScale;
-    const targetOpacity = (hovered ? 1 : 0.42 + focus * 0.58) * intro;
-    const ghostOpacity = (hovered ? 0.08 : 0.035 + backness * 0.26) * intro;
-    const ghostScale = 0.92 + backness * 0.08;
-
-    panel.current.scale.x = THREE.MathUtils.damp(panel.current.scale.x, targetScale, 6.4, safeDelta);
-    panel.current.scale.y = THREE.MathUtils.damp(panel.current.scale.y, targetScale, 6.4, safeDelta);
-
-    panel.current.material.opacity = THREE.MathUtils.damp(
-      panel.current.material.opacity,
-      targetOpacity,
-      6,
-      safeDelta
-    );
-
-    ghost.current.material.opacity = THREE.MathUtils.damp(
-      ghost.current.material.opacity,
-      ghostOpacity,
-      5,
-      safeDelta
-    );
-    ghost.current.scale.x = THREE.MathUtils.damp(ghost.current.scale.x, ghostScale, 5, safeDelta);
-    ghost.current.scale.y = THREE.MathUtils.damp(ghost.current.scale.y, ghostScale, 5, safeDelta);
-
-    if (glow.current) {
-      glow.current.material.opacity = THREE.MathUtils.damp(
-        glow.current.material.opacity,
-        hovered ? 0.25 : 0.06 + focus * 0.16,
-        5,
-        safeDelta
-      );
-    }
-
-    if (inlay.current) {
-      inlay.current.material.opacity = THREE.MathUtils.damp(
-        inlay.current.material.opacity,
-        hovered ? 0.8 : 0.5 + focus * 0.24,
-        5,
-        safeDelta
-      );
-    }
-  });
-
-  return (
-    <group ref={frame}>
-      <mesh ref={glow} position={[0, 0, -0.012]}>
-        <planeGeometry args={[0.74, 1.24]} />
-        <meshBasicMaterial
-          color="#9bc7ff"
-          transparent
-          opacity={0.06}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          side={THREE.DoubleSide}
-          toneMapped={false}
-        />
-      </mesh>
-
-      <mesh ref={inlay} position={[0, 0, -0.007]}>
-        <planeGeometry args={[0.62, 1.06]} />
-        <meshBasicMaterial
-          color="#010309"
-          transparent
-          opacity={0.52}
-          depthWrite={false}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      <mesh ref={ghost} position={[0, 0, -0.016]} renderOrder={2}>
-        <planeGeometry args={[0.54, 0.94, 1, 1]} />
-        <meshBasicMaterial
-          map={texture}
-          transparent
-          opacity={0.12}
-          depthWrite={false}
-          depthTest={false}
-          side={THREE.DoubleSide}
-          blending={THREE.AdditiveBlending}
-          toneMapped={false}
-        />
-      </mesh>
-
-      <mesh
-        ref={panel}
-        position={[0, 0, 0.004]}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          setHovered(true);
-        }}
-        onPointerOut={() => setHovered(false)}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (performance.now() < (motionRef.current.interactionBlockedUntil ?? 0)) return;
-          onSelect(art);
-        }}
-      >
-        <planeGeometry args={[0.52, 0.94, 1, 1]} />
-        <meshBasicMaterial
-          map={texture}
-          transparent
-          opacity={0.98}
-          depthWrite={false}
-          side={THREE.DoubleSide}
-          toneMapped={false}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-const MemoizedArtworkPanel = memo(ArtworkPanel);
-
-function Scene({ motionRef, onSelect, onProgress }) {
-  const group = useRef(null);
-  const previousProgressIndex = useRef(-1);
-
-  useFrame((state, delta) => {
-    const safeDelta = Math.min(delta, 0.033);
-    const motion = motionRef.current;
-
-    motion.progress = mod(motion.progress + (IDLE_LOOP_SPEED + motion.velocity) * safeDelta, TAU);
-    motion.velocity *= Math.pow(0.92, safeDelta * 60);
-    if (Math.abs(motion.velocity) < 0.1) motion.velocity = 0;
-
-    const progressIndex = mod(Math.round((-motion.progress / TAU) * artworks.length), artworks.length);
-    if (progressIndex !== previousProgressIndex.current) {
-      previousProgressIndex.current = progressIndex;
-      onProgress(progressIndex);
-    }
-
-    if (group.current) {
-      const intro = smoothstep(0.05, 2.2, state.clock.elapsedTime);
-      const targetScale = 0.82 + intro * 0.05;
-      const nextScale = THREE.MathUtils.damp(group.current.scale.x, targetScale, 3.2, safeDelta);
-      group.current.scale.setScalar(nextScale);
-      group.current.position.y = THREE.MathUtils.damp(
-        group.current.position.y,
-        0.06 + (1 - intro) * 0.18,
-        3.2,
-        safeDelta
-      );
-
-      group.current.rotation.x = THREE.MathUtils.damp(group.current.rotation.x, -0.5, 2, safeDelta);
-      group.current.rotation.y = THREE.MathUtils.damp(
-        group.current.rotation.y,
-        -0.24 + Math.sin(state.clock.elapsedTime * 0.12) * 0.045,
-        2,
-        safeDelta
-      );
-      group.current.rotation.z = THREE.MathUtils.damp(group.current.rotation.z, 0.07, 2, safeDelta);
-    }
-  });
-
-  return (
-    <>
-      <color attach="background" args={["#02040a"]} />
-      <fog attach="fog" args={["#02040a", 5.9, 12.4]} />
-
-      <ambientLight intensity={1.08} />
-      <directionalLight position={[3.2, 4.7, 4.2]} intensity={2.75} castShadow />
-      <pointLight position={[-3.2, -0.6, -2.5]} intensity={4.8} color="#79c9ff" />
-      <pointLight position={[3.0, 1.2, 2.8]} intensity={3.8} color="#5fbfff" />
-      <pointLight position={[0, 2.2, 4.5]} intensity={2.35} color="#ffffff" />
-
-      <group ref={group} position={[0, 0.24, 0]} scale={[0.82, 0.82, 0.82]}>
-        <MobiusBand />
-        <FloatingPoetry />
-        <TwistAccent motionRef={motionRef} />
-        <FlowBeads motionRef={motionRef} />
-
-        {artworks.map((art, i) => (
-          <MemoizedArtworkPanel
-            key={art.title}
-            index={i}
-            count={artworks.length}
-            art={art}
-            motionRef={motionRef}
-            onSelect={onSelect}
-          />
-        ))}
-      </group>
-
-      <Environment preset="night" />
-    </>
-  );
-}
-
-const MemoizedScene = memo(Scene);
 
 function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
+  const dialogRef = useRef(null);
+  const isOpen = Boolean(art);
+
   useEffect(() => {
-    if (!art) return undefined;
+    if (!isOpen) return undefined;
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    dialogRef.current?.querySelector("button")?.focus({ preventScroll: true });
 
     function handleKeyDown(event) {
       if (event.key === "Escape") onClose();
       if (event.key === "ArrowLeft") onNavigate(-1);
       if (event.key === "ArrowRight") onNavigate(1);
+      if (event.key !== "Tab") return;
+
+      const buttons = dialogRef.current?.querySelectorAll("button, a[href]");
+      if (!buttons?.length) return;
+      const first = buttons[0];
+      const last = buttons[buttons.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
 
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [art, onClose, onNavigate]);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+        previousFocus.focus({ preventScroll: true });
+      }
+    };
+  }, [isOpen, onClose, onNavigate]);
 
   return (
     <AnimatePresence>
       {art && (
         <motion.div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/72 p-5 backdrop-blur-xl"
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/85 p-2 backdrop-blur-xl sm:p-5"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -868,7 +215,11 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
           onClick={onClose}
         >
           <motion.div
-            className="relative grid max-h-[92vh] w-full max-w-6xl grid-cols-1 overflow-y-auto rounded-lg border border-sky-200/20 bg-[#071423]/97 shadow-[0_0_100px_rgba(56,189,248,0.18)] md:grid-cols-[1.35fr_0.65fr]"
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="artwork-title"
+            className="archive-dialog relative grid max-h-[94dvh] w-full max-w-6xl grid-cols-1 overflow-y-auto overscroll-contain md:grid-cols-[1.4fr_0.6fr]"
             initial={{ scale: 0.97, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.97, opacity: 0 }}
@@ -879,23 +230,14 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
               type="button"
               aria-label="Close artwork detail"
               onClick={onClose}
-              className="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/55 text-xl leading-none text-white opacity-60 backdrop-blur-sm transition hover:opacity-100"
+              className="absolute right-2 top-2 z-10 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/55 text-xl leading-none text-white backdrop-blur-sm transition hover:bg-sky-900"
             >
               ×
             </button>
 
-            <div className="relative min-h-[360px] overflow-hidden bg-black/65 md:min-h-[620px]">
-              <img
-                src={art.image}
-                alt={art.title}
-                decoding="async"
-                className="absolute inset-0 h-full w-full object-contain object-center"
-              />
+            <ArtworkImage key={art.image} art={art} />
 
-              <div className="absolute inset-0 shadow-[inset_0_0_90px_rgba(125,211,252,0.10)]" />
-            </div>
-
-            <div className="relative flex flex-col justify-between bg-[linear-gradient(180deg,rgba(10,24,39,0.96),rgba(6,17,30,0.98))] p-10">
+            <div className="archive-detail relative flex min-w-0 flex-col justify-between p-4 md:p-8">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(125,211,252,0.10),transparent_32%)]" />
 
               <div className="relative">
@@ -904,7 +246,7 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
                   selected work
                 </div>
 
-                <h2 className="text-4xl font-semibold leading-[1.15] tracking-tight text-white md:text-6xl">
+                <h2 id="artwork-title" className="break-words text-2xl font-semibold leading-[1.15] tracking-tight text-white md:text-4xl">
                   {art.title}
                 </h2>
 
@@ -912,39 +254,43 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
                   {art.year} · {art.medium}
                 </div>
 
-                <div className="mt-10 flex items-center gap-5 border-t border-white/10 pt-5 text-xs uppercase tracking-[0.16em] text-sky-100/52">
+                <div className="mt-5 flex items-center gap-5 border-t border-white/10 pt-5 text-xs uppercase tracking-[0.16em] text-sky-100/52">
                   <button
                     type="button"
                     onClick={() => onNavigate(-1)}
-                    className="cursor-pointer transition hover:text-white"
+                    className="min-h-11 cursor-pointer transition hover:text-white"
                   >
                     ← previous
                   </button>
                   <button
                     type="button"
                     onClick={() => onNavigate(1)}
-                    className="cursor-pointer transition hover:text-white"
+                    className="min-h-11 cursor-pointer transition hover:text-white"
                   >
                     next →
                   </button>
                 </div>
               </div>
 
-              <div className="relative mt-10 grid gap-4">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="w-fit cursor-pointer text-sm text-sky-100/68 transition hover:text-white"
+              <div className="relative mt-6 grid gap-2">
+                <a
+                  href={commissionLink("portrait", art.title)}
+                  onClick={(event) => {
+                    if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onInquire();
+                  }}
+                  className="inline-flex min-h-11 w-fit items-center rounded-full bg-sky-50 px-4 py-2 text-sm font-semibold text-[#07111b] transition hover:bg-white"
                 >
-                  ← Back to archive
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onInquire(art)}
-                  className="w-fit cursor-pointer border-b border-sky-100/25 pb-1 text-sm text-sky-100/58 transition hover:border-sky-100/60 hover:text-white"
+                  Commission in this style
+                </a>
+                <a
+                  href={commissionLink("artwork", art.title)}
+                  onClick={(event) => {
+                    if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onInquire();
+                  }}
+                  className="inline-flex min-h-11 w-fit items-center text-sm text-sky-100/80 underline underline-offset-4 transition hover:text-white"
                 >
-                  Ask about this piece
-                </button>
+                  Ask to buy this piece
+                </a>
               </div>
             </div>
           </motion.div>
@@ -956,30 +302,18 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
 
 function GridGallery({ artworksToShow, onSelect }) {
   return (
-    <div className="mt-10 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-3">
-      {artworksToShow.map((art, i) => (
-        <button
-          key={art.title}
-          onClick={() => onSelect(art)}
-          className="group grid min-h-[220px] bg-[#060b14] text-left transition hover:bg-[#0b1422] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-100"
-        >
-          <div className="grid h-full grid-rows-[1fr_auto]">
-            <img
-              src={art.thumbnail}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="h-full min-h-32 w-full object-cover object-center opacity-90 transition duration-500 group-hover:opacity-100"
-            />
-            <div className="p-5">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-sky-100/42">
-                <span>{String(i + 1).padStart(2, "0")}</span>
-              </div>
-              <h3 className="mt-5 text-2xl font-semibold text-white">{art.title}</h3>
-              <p className="mt-2 text-sm text-sky-100/58">{art.medium}</p>
+    <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
+      {artworksToShow.map((art) => (
+        <article key={art.title} className="archive-tile flex min-w-0 flex-col">
+          <button type="button" onClick={() => onSelect(art)} className="group block w-full text-left">
+            <div className="overflow-hidden">
+              <img src={art.thumbnail} alt="" loading="lazy" decoding="async"
+                className="aspect-[4/5] w-full bg-[#070c15] object-cover transition duration-300 group-hover:scale-105 sm:aspect-[6/5]" />
             </div>
-          </div>
-        </button>
+            <h2 className="break-words px-3 py-3 text-sm font-semibold leading-snug text-white sm:px-5 sm:text-xl">{art.title}</h2>
+          </button>
+          <a href={commissionLink("artwork", art.title)} aria-label={`Ask to buy ${art.title}`} className="mt-auto inline-flex min-h-11 items-center self-start px-3 text-sm text-sky-100/85 underline underline-offset-4 sm:px-5">Ask to buy</a>
+        </article>
       ))}
     </div>
   );
@@ -987,12 +321,12 @@ function GridGallery({ artworksToShow, onSelect }) {
 
 function PageShell({ eyebrow, title, intro, children, aside }) {
   return (
-    <section className="relative min-h-screen px-5 pb-20 pt-28 md:pb-24 md:pt-32">
+    <section className="archive-page relative min-h-screen px-5 pb-20 pt-28 md:pb-24 md:pt-32">
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-8 border-b border-white/10 pb-9 lg:grid-cols-[0.95fr_0.75fr] lg:items-end">
+        <div className="archive-heading grid gap-5 pb-8 lg:grid-cols-[1fr_0.65fr] lg:items-end">
           <div>
             <div className="text-xs uppercase tracking-[0.34em] text-sky-100/42">{eyebrow}</div>
-            <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.025em] text-white md:text-6xl">
+            <h1 className="archive-title mt-4 max-w-4xl">
               {title}
             </h1>
           </div>
@@ -1051,7 +385,7 @@ function createMobileMobiusVisual() {
       const v1 = -halfWidth + ((j + 1) / vSegments) * halfWidth * 2;
       const corners = [project(u0, v0), project(u1, v0), project(u1, v1), project(u0, v1)];
       const depth = corners.reduce((sum, point) => sum + point.depth, 0) / corners.length;
-      const depthLight = THREE.MathUtils.clamp((depth + 1.8) / 3.6, 0, 1);
+      const depthLight = Math.min(1, Math.max(0, (depth + 1.8) / 3.6));
       const innerShade = 1 - Math.abs((j + 0.5) / vSegments - 0.5) * 1.25;
       const tone = Math.round(46 + depthLight * 88 + innerShade * 28);
       const alpha = 0.105 + depthLight * 0.19 + innerShade * 0.04;
@@ -1093,7 +427,7 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const touchRef = useRef({ active: false, startX: 0, startY: 0 });
   const pointerRef = useRef({ active: false, startX: 0, startY: 0 });
-  const intervalRef = useRef(null);
+  const suppressClick = useRef(0);
   const count = artworks.length;
   const mobileMobius = useMemo(() => createMobileMobiusVisual(), []);
 
@@ -1101,37 +435,6 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
     if (count === 0) return;
     setActiveIndex((index) => mod(index + direction, count));
   }, [count]);
-
-  const startAutoRotate = useCallback(() => {
-    if (intervalRef.current) window.clearInterval(intervalRef.current);
-    if (count <= 1) return;
-    intervalRef.current = window.setInterval(() => advance(1), 3500);
-  }, [advance, count]);
-
-  const rotateBy = useCallback((direction, userTriggered = false) => {
-    advance(direction);
-    if (userTriggered) startAutoRotate();
-  }, [advance, startAutoRotate]);
-
-  useEffect(() => {
-    startAutoRotate();
-    return () => {
-      if (intervalRef.current) window.clearInterval(intervalRef.current);
-    };
-  }, [startAutoRotate]);
-
-  useEffect(() => {
-    function handleKeyDown(event) {
-      if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-        rotateBy(1, true);
-      } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-        rotateBy(-1, true);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [rotateBy]);
 
   if (count === 0) return null;
 
@@ -1152,8 +455,13 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
 
   return (
     <div
-      className="relative h-[100dvh] min-h-[720px] overflow-y-auto overflow-x-hidden bg-[#02040a] px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(96px+env(safe-area-inset-top))] text-white outline-none"
+      className="relative min-h-[100dvh] overflow-x-clip bg-[#02040a] px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(96px+env(safe-area-inset-top))] text-white outline-none"
       tabIndex={0}
+      aria-label="Artwork carousel"
+      onKeyDown={(event) => {
+        if (event.key === "ArrowRight") advance(1);
+        if (event.key === "ArrowLeft") advance(-1);
+      }}
       onTouchStart={(event) => {
         const touch = event.touches[0];
         touchRef.current = { active: true, startX: touch.clientX, startY: touch.clientY };
@@ -1167,7 +475,8 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
         touchRef.current.active = false;
 
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
-          rotateBy(dx < 0 ? 1 : -1, true);
+          suppressClick.current = performance.now() + 250;
+          advance(dx < 0 ? 1 : -1);
         }
       }}
       onPointerDown={(event) => {
@@ -1182,7 +491,8 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
         pointerRef.current.active = false;
 
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
-          rotateBy(dx < 0 ? 1 : -1, true);
+          suppressClick.current = performance.now() + 250;
+          advance(dx < 0 ? 1 : -1);
         }
       }}
       onPointerLeave={() => {
@@ -1305,14 +615,9 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
               <button
                 type="button"
                 key={`${art.title}-${position}`}
-                aria-label={position === 0 ? `Open ${art.title}` : position > 0 ? "Next artwork" : "Previous artwork"}
+                aria-label={`Open ${art.title}`}
                 onClick={() => {
-                  if (position === 0) {
-                    onSelect(art);
-                    startAutoRotate();
-                  } else {
-                    rotateBy(position, true);
-                  }
+                  if (performance.now() >= suppressClick.current) onSelect(art);
                 }}
                 className="absolute block overflow-hidden rounded-md bg-black p-0 shadow-[0_18px_42px_rgba(0,0,0,0.42)]"
                 style={{
@@ -1352,7 +657,7 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
           <button
             type="button"
             aria-label="Previous artwork"
-            onClick={() => rotateBy(-1, true)}
+            onClick={() => advance(-1)}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.035] text-3xl leading-none text-white/70 transition hover:border-white/28 hover:text-white"
           >
             ‹
@@ -1363,14 +668,14 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
           <button
             type="button"
             aria-label="Next artwork"
-            onClick={() => rotateBy(1, true)}
+            onClick={() => advance(1)}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.035] text-3xl leading-none text-white/70 transition hover:border-white/28 hover:text-white"
           >
             ›
           </button>
         </div>
         <div className="mt-2 text-[11px] uppercase tracking-[0.12em] text-white/30">
-          mobius archive
+          Möbius archive
         </div>
 
         <div className="mt-4 flex items-center justify-center gap-1.5" aria-label={`Artwork ${activeIndex + 1} of ${count}`}>
@@ -1391,10 +696,10 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
 
       <div className="relative z-20 mt-5">
         <h1 className="max-w-sm text-[clamp(1.35rem,5.8vw,1.8rem)] font-semibold leading-[1.08] tracking-[-0.02em] text-white">
-          A brief inquiry into online relationships.
+          Character studies on a continuous loop.
         </h1>
         <p className="mt-3 max-w-sm text-xs leading-5 text-sky-100/52">
-          Pirate King Fanpage traces intimacy, identity, distance, and devotion through an endless gallery of digital-age artifacts.
+          Explore Dion Nikila’s archive of character art, or commission an illustration of your own.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <button
@@ -1402,14 +707,14 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
             onClick={() => navigate("/work")}
             className="rounded-full bg-sky-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-black transition hover:bg-white"
           >
-            view archive
+            Browse art to buy
           </button>
           <button
             type="button"
-            onClick={() => navigate("/contact")}
+            onClick={() => navigate("/commissions")}
             className="rounded-full border border-sky-100/20 bg-black/20 px-4 py-2.5 text-xs uppercase tracking-[0.16em] text-sky-100/72 transition hover:border-sky-100/40 hover:text-white"
           >
-            contact
+            Commission a piece
           </button>
         </div>
       </div>
@@ -1417,143 +722,108 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
   );
 }
 
-function HomePage({ motionRef, onSelect, navigate }) {
+class GalleryBoundary extends Component {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch() {
+    this.props.onFailure();
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
+function supportsWebGL() {
+  try {
+    const context = document.createElement("canvas").getContext("webgl2");
+    if (!context) return false;
+    context.getExtension("WEBGL_lose_context")?.loseContext();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function HomePage({ onSelect }) {
   const isMobile = useIsMobile();
-  const isDocumentVisible = useDocumentVisibility();
-  const { active: assetsLoading, progress: assetsProgress, total: assetTotal } = useProgress();
-  const [carouselReadyFallback, setCarouselReadyFallback] = useState(false);
-  const [activeArtworkIndex, setActiveArtworkIndex] = useState(0);
-  const [showHint, setShowHint] = useState(false);
-  const syncProgress = useCallback((index) => setActiveArtworkIndex(index), []);
-  const carouselReady =
-    carouselReadyFallback || (assetTotal > 0 && !assetsLoading && assetsProgress >= 100);
+  const isVisible = useDocumentVisibility();
+  const reduceMotion = useReducedMotion();
+  const [activeIndex, setActiveIndex] = useState(null);
+  const [failed, setFailed] = useState(false);
+  const [webGLAvailable] = useState(supportsWebGL);
+  const motionRef = useRef({ progress: 0, velocity: 0 });
+  const drag = useRef(null);
 
-  useEffect(() => {
-    const fallbackTimer = window.setTimeout(() => setCarouselReadyFallback(true), 2600);
-    return () => window.clearTimeout(fallbackTimer);
-  }, []);
+  const showFallback = useCallback(() => setFailed(true), []);
+  const use3D = webGLAvailable && !isMobile && !reduceMotion && !failed;
+  const ready = use3D && activeIndex !== null;
 
-  useEffect(() => {
-    let showTimer;
-    let hideTimer;
-
-    try {
-      if (window.localStorage.getItem("hint_seen")) return undefined;
-      window.localStorage.setItem("hint_seen", "true");
-    } catch {
-      // The hint remains available when storage is disabled.
-    }
-
-    showTimer = window.setTimeout(() => setShowHint(true), 1500);
-    hideTimer = window.setTimeout(() => setShowHint(false), 5000);
-
-    return () => {
-      window.clearTimeout(showTimer);
-      window.clearTimeout(hideTimer);
-    };
-  }, []);
+  function navigate(path) {
+    window.location.assign(`#${path}`);
+  }
 
   return (
-    <section className="relative min-h-[100dvh] w-screen md:h-screen md:min-h-[680px]">
-      <motion.div
-        className="absolute inset-0 [will-change:transform]"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: isMobile || carouselReady ? 1 : 0.16 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
-      >
-        {isMobile ? (
-          <ArcCarousel artworks={artworks} navigate={navigate} onSelect={onSelect} />
-        ) : (
-          <Canvas
-            camera={{ position: [0, 1.2, 7.6], fov: 39 }}
-            dpr={[1, 2]}
-            frameloop={isDocumentVisible ? "always" : "never"}
-            shadows
-            gl={{ antialias: true, alpha: false }}
-          >
+    <section className="relative min-h-[100dvh] overflow-x-clip md:min-h-[max(100dvh,680px)]" aria-label="Möbius artwork gallery">
+      {!ready && <ArcCarousel artworks={artworks} onSelect={onSelect} navigate={navigate} />}
+
+      {use3D && (
+        <div
+          data-gallery="3d"
+          className={`absolute inset-0 transition-opacity duration-500 ${ready ? "opacity-100" : "pointer-events-none opacity-0"}`}
+          onWheel={(event) => {
+            motionRef.current.velocity = Math.min(1.15, Math.max(-1.15, motionRef.current.velocity + event.deltaY * 0.00128));
+          }}
+          onPointerDown={(event) => {
+            if (!event.isPrimary || event.button !== 0) return;
+            motionRef.current.velocity = 0;
+            drag.current = { startX: event.clientX, startY: event.clientY, lastX: event.clientX };
+          }}
+          onPointerMove={(event) => {
+            const current = drag.current;
+            if (!current || (event.buttons & 1) === 0) return;
+            if (Math.hypot(event.clientX - current.startX, event.clientY - current.startY) < 8) return;
+            const delta = event.clientX - current.lastX;
+            motionRef.current.velocity = Math.min(1.15, Math.max(-1.15, motionRef.current.velocity - delta * 0.007));
+            current.lastX = event.clientX;
+          }}
+          onPointerUp={() => { drag.current = null; }}
+          onPointerLeave={() => { drag.current = null; }}
+          onPointerCancel={() => { drag.current = null; }}
+        >
+          <GalleryBoundary onFailure={showFallback}>
             <Suspense fallback={null}>
-              <MemoizedScene motionRef={motionRef} onSelect={onSelect} onProgress={syncProgress} />
+              <DesktopGallery artworks={artworks} isVisible={isVisible} motionRef={motionRef} onSelect={onSelect} onProgress={setActiveIndex} onFailure={showFallback} />
             </Suspense>
-          </Canvas>
-        )}
-      </motion.div>
-
-      <AnimatePresence>
-        {!isMobile && !carouselReady && (
-          <motion.div
-            className="pointer-events-none absolute left-1/2 top-[31%] z-10 h-28 w-56 -translate-x-1/2 rounded-[50%] border border-sky-100/20 shadow-[0_0_54px_rgba(125,211,252,0.12)]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0.2, 0.62, 0.2] }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-          />
-        )}
-      </AnimatePresence>
-
-      <div
-        className="pointer-events-none absolute left-1/2 top-[55%] z-20 hidden -translate-x-1/2 items-center gap-1.5 md:flex"
-        aria-label={`Artwork ${activeArtworkIndex + 1} of ${artworks.length}`}
-      >
-        {artworks.map((art, index) => (
-          <span
-            key={art.title}
-            className={`h-1 rounded-full transition-all duration-300 ${
-              index === activeArtworkIndex ? "w-7 bg-sky-100/80" : "w-1.5 bg-sky-100/22"
-            }`}
-          />
-        ))}
-      </div>
-
-      <AnimatePresence>
-        {!isMobile && showHint && (
-          <motion.div
-            className="pointer-events-none absolute left-1/2 top-[59%] z-20 -translate-x-1/2 text-center text-[11px] uppercase tracking-[0.24em] text-sky-100/52"
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-          >
-            wheel, drag, or click a panel
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 hidden px-5 pb-8 md:block md:px-10 md:pb-10">
-        <div>
-          <motion.h1
-            className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-[-0.02em] text-white md:text-5xl"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, ease: "easeOut" }}
-          >
-            A brief inquiry into online relationships.
-          </motion.h1>
-
-          <motion.p
-            className="mt-4 max-w-xl text-sm leading-6 text-sky-100/58 md:text-base md:leading-7"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.15, ease: "easeOut" }}
-          >
-            Pirate King Fanpage traces intimacy, identity, distance, and devotion through an endless gallery of digital-age artifacts.
-          </motion.p>
-
-          <div className="pointer-events-auto mt-5 flex flex-wrap gap-3">
-            <button
-              onClick={() => navigate("/work")}
-              className="rounded-full bg-sky-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-white"
-            >
-              view archive
-            </button>
-            <button
-              onClick={() => navigate("/contact")}
-              className="rounded-full border border-sky-100/20 bg-black/20 px-4 py-2.5 text-xs uppercase tracking-[0.16em] text-sky-100/72 transition hover:border-sky-100/40 hover:text-white"
-            >
-              contact
-            </button>
-          </div>
+          </GalleryBoundary>
         </div>
-      </div>
+      )}
+
+      {ready && (
+        <>
+          <div className="pointer-events-none absolute left-1/2 top-[55%] -translate-x-1/2 text-center">
+            <div className="flex items-center gap-1.5" aria-label={`Artwork ${activeIndex + 1} of ${artworks.length}`}>
+              {artworks.map((art, index) => (
+                <span key={art.title} className={`h-1 rounded-full transition-all ${index === activeIndex ? "w-7 bg-sky-100/80" : "w-1.5 bg-sky-100/22"}`} />
+              ))}
+            </div>
+            <p className="mt-3 whitespace-nowrap text-[10px] uppercase tracking-[.19em] text-sky-100/65">Drag to explore · Click an artwork</p>
+          </div>
+
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-5 pb-8 md:px-10 md:pb-10">
+            <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">Character studies on a continuous loop.</h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-sky-100/70 md:text-base">Explore Dion Nikila’s archive of character art, or commission an illustration of your own.</p>
+            <div className="pointer-events-auto mt-5 flex w-fit flex-wrap gap-3">
+              <a href="#/work" className="inline-flex min-h-11 items-center rounded-full bg-sky-50 px-4 text-sm font-semibold text-[#07111b] hover:bg-white">Browse art to buy</a>
+              <a href={commissionLink()} className="inline-flex min-h-11 items-center rounded-full border border-sky-100/24 bg-black/25 px-4 text-sm font-semibold text-sky-100 hover:border-sky-100/60">Commission a piece</a>
+            </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }
@@ -1561,14 +831,13 @@ function HomePage({ motionRef, onSelect, navigate }) {
 function WorkPage({ onSelect }) {
   return (
     <PageShell
-      eyebrow="work"
-      title="The archive."
-      intro="Open a piece to spend more time with it."
+      eyebrow="The Chinese Satellite Archive"
+      title="The archive"
+      intro="See something you’d like to own? Ask about the original or a print. I’ll confirm availability, the price, and any delivery costs before you pay."
+      aside={
+        <a href={commissionLink()} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-sky-100 underline underline-offset-4">Commission a piece</a>
+      }
     >
-      <div className="mt-9 border-b border-white/10 pb-6 text-sm text-sky-100/52">
-        {artworks.length} works
-      </div>
-
       <GridGallery artworksToShow={artworks} onSelect={onSelect} />
     </PageShell>
   );
@@ -1577,28 +846,23 @@ function WorkPage({ onSelect }) {
 function AboutPage() {
   return (
     <PageShell
-      eyebrow="about the studio"
-      title="Images for the feelings that screens make difficult to name."
-      intro="The work treats online relationships as emotional architecture: places people enter, decorate, haunt, misread, and sometimes genuinely inhabit."
+      eyebrow="About the artist"
+      title="Dion Nikila"
+      intro="The Chinese Satellite Archive is my illustration portfolio and commission studio in Sri Lanka."
     >
-      <div className="mt-12 grid gap-10 lg:grid-cols-[0.95fr_0.75fr]">
-        <div className="space-y-8">
-          <p className="max-w-3xl text-2xl leading-10 text-white/86">
-            Pirate King Fanpage is built for the half-real feelings that collect around avatars, usernames, private windows, fan pages, late-night messages, and images that become more intimate because they are mediated.
-          </p>
-          <p className="max-w-3xl leading-8 text-sky-100/62">
-            The studio blends painting, drawing, digital collage, generated texture, and interface design. The result is part exhibition, part fan archive, part confession booth.
-          </p>
+      <div className="mt-8 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="archive-panel space-y-5 p-5 text-lg leading-8 text-sky-100/85 sm:p-8">
+          <p>I’m drawn to characters you can recognize from a silhouette or a single gesture. The archive collects my studies of characters from manga, anime, and animation in a gallery that folds back on itself.</p>
+          <p>For commissions, I can draw a portrait, interpret an original character, or develop artwork for a cover or poster. Share a little about the person, world, or project you have in mind.</p>
         </div>
-
-        <div className="border-l border-white/10 pl-6">
-          <h2 className="text-xl font-semibold text-white">What is available</h2>
-          <div className="mt-6 grid gap-4">
-            {services.map((service) => (
-              <div key={service} className="border-b border-white/10 pb-4 text-sky-100/68">
-                {service}
-              </div>
-            ))}
+        <div className="archive-panel self-end p-5 sm:p-8">
+          <h2 className="text-lg font-semibold text-white">Work with me</h2>
+          <p className="mt-2 text-sm leading-6 text-sky-100/70">See the starting prices and send a brief, or get in touch directly.</p>
+          <a href={commissionLink()} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-sky-100 underline underline-offset-4">View commissions</a>
+          <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-sky-100/75">
+            <a href={INSTAGRAM_URL} className="underline underline-offset-4">@thechinese.satellite</a>
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">WhatsApp</a>
+            <a href="#/contact" className="underline underline-offset-4">Send a message</a>
           </div>
         </div>
       </div>
@@ -1606,32 +870,21 @@ function AboutPage() {
   );
 }
 
-function JournalPage({ navigate }) {
+function JournalPage() {
   return (
     <PageShell
-      eyebrow="journal"
-      title="Studio notes, open windows, and process fragments."
-      intro="Short entries give the work a little more room: why the interface loops, how the images are built, and where commissions fit into the practice."
-      aside={
-        <button
-          onClick={() => navigate("/contact")}
-          className="mt-6 rounded-full border border-sky-100/20 px-5 py-3 text-sm uppercase tracking-[0.18em] text-sky-100/75 transition hover:border-sky-100/45 hover:text-white"
-        >
-          pitch a project
-        </button>
-      }
+      eyebrow="Journal"
+      title="Studio notes"
+      intro="A few notes on the shape of the gallery, the work inside it, and how a commission starts."
     >
-      <div className="mt-12 divide-y divide-white/10 border-y border-white/10">
+      <div className="archive-notes mt-8 grid gap-4 lg:grid-cols-3">
         {studioNotes.map((note) => (
-          <article key={note.title} className="grid gap-5 py-7 md:grid-cols-[0.28fr_1fr_auto] md:items-center">
-            <div className="text-xs uppercase tracking-[0.25em] text-sky-100/42">{note.date}</div>
+          <article key={note.title} className="archive-panel grid content-start gap-5 p-5 sm:p-8">
+            <div className="text-xs uppercase tracking-[0.16em] text-sky-100/58">{note.date}</div>
             <div>
               <h2 className="text-2xl font-semibold text-white">{note.title}</h2>
-              <p className="mt-3 max-w-2xl leading-7 text-sky-100/62">{note.summary}</p>
+              <p className="mt-3 max-w-2xl leading-7 text-sky-100/74">{note.summary}</p>
             </div>
-            <span className="w-fit text-sm uppercase tracking-[0.22em] text-sky-100/38">
-              note
-            </span>
           </article>
         ))}
       </div>
@@ -1639,210 +892,34 @@ function JournalPage({ navigate }) {
   );
 }
 
-function ContactPage({ selectedArt, onSelectArtwork, navigate }) {
-  const firstArtworkTitle = artworks[0]?.title ?? "Custom commission";
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    interest: selectedArt?.title ?? firstArtworkTitle,
-    message: "",
-  });
-  const [sent, setSent] = useState(false);
-
-  const interest = selectedArt?.title ?? form.interest;
-
-  function updateField(field, value) {
-    setSent(false);
-    setForm((current) => ({ ...current, [field]: value }));
-  }
-
-  function handleSubmit(event) {
-    event.preventDefault();
-
-    const body = encodeURIComponent(
-      `Name: ${form.name}\nEmail: ${form.email}\nInterest: ${interest}\n\n${form.message}`
-    );
-    const subject = encodeURIComponent(`Portfolio inquiry: ${interest}`);
-
-    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
-    setSent(true);
-  }
-
-  return (
-    <section className="relative min-h-screen px-5 pb-20 pt-28 md:pb-24 md:pt-32">
-      <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.82fr_1fr]">
-        <div className="min-w-0">
-          <div className="text-xs uppercase tracking-[0.34em] text-sky-100/40">contact</div>
-          <h1 className="mt-4 max-w-full break-words text-3xl font-semibold leading-[1.1] tracking-[-0.025em] text-white md:text-5xl">
-            Let&apos;s talk about the work.
-          </h1>
-          <p className="mt-6 max-w-xl text-base leading-7 text-sky-100/60">
-            Reach out directly, or use the short form to open an email draft with the useful context already included.
-          </p>
-
-          {selectedArt && (
-            <div className="mt-8 flex items-center gap-4 border-y border-white/10 py-4">
-              <img
-                src={selectedArt.thumbnail}
-                alt=""
-                className="h-16 w-12 object-cover object-center"
-              />
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.2em] text-sky-100/38">
-                  selected work
-                </div>
-                <div className="mt-2 text-lg font-semibold text-white">{selectedArt.title}</div>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-8 grid gap-5 text-sm">
-            <a className="group w-fit transition hover:text-white" href={`mailto:${CONTACT_EMAIL}`}>
-              <span className="block text-[11px] uppercase tracking-[0.2em] text-sky-100/38">
-                email
-              </span>
-              <span className="mt-1 block text-sky-100/72 transition group-hover:text-white">
-                {CONTACT_EMAIL}
-              </span>
-            </a>
-            <a className="group w-fit transition hover:text-white" href={`tel:${CONTACT_PHONE}`}>
-              <span className="block text-[11px] uppercase tracking-[0.2em] text-sky-100/38">
-                phone
-              </span>
-              <span className="mt-1 block text-sky-100/72 transition group-hover:text-white">
-                {CONTACT_PHONE}
-              </span>
-            </a>
-            <button className="w-fit text-left transition hover:text-white" onClick={() => navigate("/work")}>
-              View the archive →
-            </button>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="min-w-0 rounded-md border border-white/12 bg-white/[0.035] p-5 md:p-7">
-          <div className="mb-6 text-sm leading-6 text-sky-100/58">
-            Send a note
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2 text-sm text-sky-100/68">
-              Name
-              <input
-                required
-                value={form.name}
-                onChange={(event) => updateField("name", event.target.value)}
-                className="min-w-0 rounded-lg border border-sky-100/14 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-sky-100/45"
-              />
-            </label>
-
-            <label className="grid gap-2 text-sm text-sky-100/68">
-              Reply email
-              <input
-                required
-                type="email"
-                value={form.email}
-                onChange={(event) => updateField("email", event.target.value)}
-                className="min-w-0 rounded-lg border border-sky-100/14 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-sky-100/45"
-              />
-            </label>
-          </div>
-
-          <label className="mt-4 grid gap-2 text-sm text-sky-100/68">
-            About
-            <select
-              value={interest}
-              onChange={(event) => {
-                updateField("interest", event.target.value);
-                onSelectArtwork(null);
-              }}
-              className="min-w-0 rounded-lg border border-sky-100/14 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-sky-100/45"
-            >
-              {artworks.map((art) => (
-                <option key={art.title} value={art.title}>
-                  {art.title}
-                </option>
-              ))}
-              <option value="Custom commission">Custom commission</option>
-              <option value="Licensing or collaboration">Licensing or collaboration</option>
-            </select>
-          </label>
-
-          <label className="mt-4 grid gap-2 text-sm text-sky-100/68">
-            Message
-            <textarea
-              required
-              rows="5"
-              value={form.message}
-              onChange={(event) => updateField("message", event.target.value)}
-              className="min-w-0 resize-none rounded-lg border border-sky-100/14 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-sky-100/45"
-              placeholder="Write a quick note about the piece or idea you have in mind."
-            />
-          </label>
-
-          <div className="mt-6 flex flex-wrap items-center gap-4">
-            <button
-              type="submit"
-              className="rounded-full bg-sky-50 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-white"
-            >
-              open email draft
-            </button>
-            {sent && <span className="text-sm text-sky-100/60">Your email app should be ready.</span>}
-          </div>
-        </form>
-      </div>
-    </section>
-  );
-}
-
 export default function MobiusPortfolio() {
-  const motionRef = useRef({ progress: 0, velocity: 0, interactionBlockedUntil: 0 });
-  const dragRef = useRef({ active: false, x: 0, y: 0 });
-  const wheelThrottleRef = useRef(0);
-
-  const [route, setRoute] = useState(() => normalizePath(window.location.pathname));
+  const [location, setLocation] = useState(readLocation);
   const [modalArt, setModalArt] = useState(null);
-  const [inquiryArt, setInquiryArt] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const activeRoute = routes.find((item) => item.path === route) ?? routes[0];
+  const formRef = useRef(null);
+  const activeRoute = routes.find((item) => item.path === location.path) ?? routes[0];
+  const inquiryArt = artworks.find((art) => art.title === location.reference);
 
   useEffect(() => {
     function syncRoute() {
-      setRoute(normalizePath(window.location.pathname));
-      window.scrollTo({ top: 0, left: 0 });
+      setLocation(readLocation());
+      setModalArt(null);
+      setMenuOpen(false);
     }
 
+    window.addEventListener("hashchange", syncRoute);
     window.addEventListener("popstate", syncRoute);
-    return () => window.removeEventListener("popstate", syncRoute);
+    return () => {
+      window.removeEventListener("hashchange", syncRoute);
+      window.removeEventListener("popstate", syncRoute);
+    };
   }, []);
 
   useEffect(() => {
-    const label = activeRoute.path === "/" ? "Home" : activeRoute.label[0].toUpperCase() + activeRoute.label.slice(1);
-    document.title = `${label} | Pirate King Fanpage`;
-  }, [activeRoute]);
-
-  function pushVelocity(amount) {
-    motionRef.current.velocity = THREE.MathUtils.clamp(
-      motionRef.current.velocity + amount,
-      -1.15,
-      1.15
-    );
-    motionRef.current.interactionBlockedUntil = performance.now() + 140;
-  }
-
-  function navigate(path) {
-    const nextPath = normalizePath(path);
-    if (nextPath !== route) {
-      window.history.pushState({}, "", nextPath);
-      setRoute(nextPath);
-    }
-    setMenuOpen(false);
-    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-  }
-
-  function startInquiry(art) {
-    setInquiryArt(art);
-    setModalArt(null);
-    navigate("/contact");
-  }
+    const pageTitle = location.isContact ? "Contact" : activeRoute.label;
+    document.title = activeRoute.path === "/" ? "The Chinese Satellite Archive | Art by Dion Nikila" : `${pageTitle} | The Chinese Satellite Archive`;
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [activeRoute, location.isContact]);
 
   const closeModal = useCallback(() => setModalArt(null), []);
 
@@ -1856,35 +933,8 @@ export default function MobiusPortfolio() {
   }, []);
 
   return (
-    <div
-      className="relative min-h-screen overflow-x-hidden bg-[#02040a] text-white"
-      onWheel={(e) => {
-        const now = performance.now();
-        if (now - wheelThrottleRef.current < 16) return;
-        wheelThrottleRef.current = now;
-        pushVelocity(e.deltaY * 0.00128);
-      }}
-      onPointerDown={(e) => {
-        dragRef.current = { active: true, x: e.clientX, y: e.clientY };
-      }}
-      onPointerMove={(e) => {
-        if (!dragRef.current.active) return;
-
-        const dx = e.clientX - dragRef.current.x;
-        const dy = e.clientY - dragRef.current.y;
-
-        pushVelocity((-dx + dy * 0.4) * 0.0068);
-
-        dragRef.current.x = e.clientX;
-        dragRef.current.y = e.clientY;
-      }}
-      onPointerUp={() => {
-        dragRef.current.active = false;
-      }}
-      onPointerLeave={() => {
-        dragRef.current.active = false;
-      }}
-    >
+    <MotionConfig reducedMotion="user">
+    <div className="relative min-h-screen overflow-x-clip bg-[#02040a] text-white">
       <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,rgba(5,10,18,0)_0%,rgba(5,10,18,0.36)_100%)]" />
 
       <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.04] [background-image:linear-gradient(90deg,rgba(255,255,255,.7)_1px,transparent_1px)] [background-size:72px_72px]" />
@@ -1892,77 +942,73 @@ export default function MobiusPortfolio() {
       <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-40 bg-gradient-to-b from-sky-200/10 to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-28 bg-gradient-to-t from-sky-400/[0.045] to-transparent" />
 
-      <header className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between gap-4 border-b border-white/[0.08] bg-[#02040a]/86 px-5 py-4 backdrop-blur-xl md:px-8">
-        <button className="text-left" onClick={() => navigate("/")}>
-          <div className="text-[11px] uppercase tracking-[0.34em] text-sky-100/42">
-            endless archive
-          </div>
-          <div className="mt-1 text-xl font-semibold tracking-tight text-white">
-            Pirate King Fanpage
-          </div>
-        </button>
+      <header className="fixed inset-x-0 top-0 z-30 border-b border-white/10 bg-[#02040a]/90 backdrop-blur-xl">
+        <div className="mx-auto flex min-h-[72px] max-w-[1600px] items-center justify-between gap-2 px-4 sm:gap-5 sm:px-6 md:px-8">
+          <a className="min-w-0 py-2" href="#/" onClick={() => setMenuOpen(false)}>
+            <div className="hidden text-[10px] uppercase tracking-[0.23em] text-sky-100/55 sm:block">Art by Dion Nikila</div>
+            <div className="text-sm leading-tight font-semibold tracking-tight text-white sm:text-xl">The Chinese Satellite Archive</div>
+          </a>
 
-        <nav className="hidden items-center gap-8 text-sm text-sky-100/56 md:flex">
-          {routes.slice(1).map((item) => (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className={`transition ${
-                activeRoute.path === item.path
-                  ? "text-white"
-                  : "hover:text-white"
-              }`}
+          <nav aria-label="Main navigation" className="hidden items-center gap-8 text-sm text-sky-100/72 md:flex">
+            {routes.slice(1).map((item) => (
+              <a
+                key={item.path}
+                href={`#${item.path}`}
+                aria-current={activeRoute.path === item.path ? "page" : undefined}
+                className="inline-flex min-h-11 items-center transition hover:text-white aria-[current=page]:text-white"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <a
+              href="#/contact"
+              onClick={() => setMenuOpen(false)}
+              aria-current={location.isContact ? "page" : undefined}
+              className="inline-flex min-h-11 items-center rounded-full bg-sky-50 px-3 text-xs font-semibold text-[#07111b] transition hover:bg-white sm:px-4 sm:text-sm"
             >
-              {item.label}
+              Contact
+            </a>
+
+            <button
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              className="min-h-11 rounded-full border border-white/18 px-3 text-xs font-semibold text-sky-100/80 md:hidden"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-navigation"
+            >
+              {menuOpen ? "Close" : "Menu"}
             </button>
-          ))}
-        </nav>
-
-        <button
-          onClick={() => navigate("/contact")}
-          className="hidden rounded-full border border-sky-100/20 px-4 py-2 text-xs uppercase tracking-[0.18em] text-sky-100/76 transition hover:border-sky-100/45 hover:text-white sm:block"
-        >
-          contact
-        </button>
-
-        <button
-          onClick={() => setMenuOpen((open) => !open)}
-          className="rounded-full border border-white/12 px-4 py-2 text-xs uppercase tracking-[0.18em] text-sky-100/76 md:hidden"
-          aria-expanded={menuOpen}
-        >
-          {menuOpen ? "close" : "menu"}
-        </button>
+          </div>
+        </div>
       </header>
 
       <AnimatePresence>
         {menuOpen && (
           <motion.nav
-            className="fixed inset-x-0 bottom-0 top-[73px] z-20 bg-[#02040a]/98 px-5 py-8 shadow-2xl backdrop-blur-xl md:hidden"
-            initial={{ opacity: 0, y: -12 }}
+            id="mobile-navigation"
+            aria-label="Mobile navigation"
+            className="fixed inset-x-0 top-[72px] z-30 border-b border-white/10 bg-[#02040a] px-5 py-4 shadow-2xl md:hidden"
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
+            exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
-            <div className="mb-8 text-xs uppercase tracking-[0.32em] text-sky-100/34">navigation</div>
-            <div className="grid divide-y divide-white/10 border-y border-white/10">
+            <div className="grid divide-y divide-white/10">
               {routes.map((item) => (
-                <button
+                <a
                   key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className={`py-5 text-left text-3xl font-semibold tracking-[-0.02em] ${
-                    activeRoute.path === item.path ? "text-white" : "text-sky-100/58"
-                  }`}
+                  href={`#${item.path}`}
+                  onClick={() => setMenuOpen(false)}
+                  aria-current={activeRoute.path === item.path ? "page" : undefined}
+                  className="flex min-h-11 items-center py-3 text-lg font-semibold text-sky-100/70 hover:text-white aria-[current=page]:text-white"
                 >
                   {item.label}
-                </button>
+                </a>
               ))}
             </div>
-            <button
-              onClick={() => navigate("/contact")}
-              className="mt-8 rounded-full bg-sky-50 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-black"
-            >
-              contact
-            </button>
           </motion.nav>
         )}
       </AnimatePresence>
@@ -1977,17 +1023,13 @@ export default function MobiusPortfolio() {
             transition={{ duration: 0.28, ease: "easeOut" }}
           >
             {activeRoute.path === "/" && (
-              <HomePage motionRef={motionRef} onSelect={setModalArt} navigate={navigate} />
+              <HomePage onSelect={setModalArt} />
             )}
             {activeRoute.path === "/work" && <WorkPage onSelect={setModalArt} />}
             {activeRoute.path === "/about" && <AboutPage />}
-            {activeRoute.path === "/journal" && <JournalPage navigate={navigate} />}
-            {activeRoute.path === "/contact" && (
-              <ContactPage
-                selectedArt={inquiryArt}
-                onSelectArtwork={setInquiryArt}
-                navigate={navigate}
-              />
+            {activeRoute.path === "/journal" && <JournalPage />}
+            {activeRoute.path === "/commissions" && (
+              <CommissionPage type={location.type} artwork={inquiryArt} formRef={formRef} isContact={location.isContact} />
             )}
           </motion.div>
         </AnimatePresence>
@@ -1996,9 +1038,10 @@ export default function MobiusPortfolio() {
       <ArtworkModal
         art={modalArt}
         onClose={closeModal}
-        onInquire={startInquiry}
+        onInquire={closeModal}
         onNavigate={navigateModal}
       />
     </div>
+    </MotionConfig>
   );
 }
