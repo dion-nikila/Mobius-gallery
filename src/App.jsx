@@ -685,10 +685,10 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
 
       <div className="relative z-20 mt-5">
         <h1 className="max-w-sm text-[clamp(1.35rem,5.8vw,1.8rem)] font-semibold leading-[1.08] tracking-[-0.02em] text-white">
-          Somewhere out there, the drawings are still awake.
+          “I want to believe”
         </h1>
         <p className="mt-3 max-w-sm text-xs leading-5 text-sky-100/52">
-          An archive of character studies by Dion Nikila.
+          Phoebe Bridgers · Chinese Satellite
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <button
@@ -800,12 +800,11 @@ function HomePage({ onSelect }) {
                 <span key={art.title} className={`h-1 rounded-full transition-all ${index === activeIndex ? "w-7 bg-sky-100/80" : "w-1.5 bg-sky-100/22"}`} />
               ))}
             </div>
-            <p className="mt-3 whitespace-nowrap text-[10px] uppercase tracking-[.19em] text-sky-100/65">Drag to explore · Click an artwork</p>
           </div>
 
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-5 pb-8 md:px-10 md:pb-10">
-            <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">Somewhere out there, the drawings are still awake.</h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-sky-100/70 md:text-base">An archive of character studies by Dion Nikila.</p>
+            <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">“I want to believe”</h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-sky-100/70 md:text-base">Phoebe Bridgers · Chinese Satellite</p>
             <div className="pointer-events-auto mt-5 flex w-fit flex-wrap gap-3">
               <a href="#/work" className="inline-flex min-h-11 items-center rounded-full bg-sky-50 px-4 text-sm font-semibold text-[#07111b] hover:bg-white">Browse art to buy</a>
               <a href={commissionLink()} className="inline-flex min-h-11 items-center rounded-full border border-sky-100/24 bg-black/25 px-4 text-sm font-semibold text-sky-100 hover:border-sky-100/60">Commission a piece</a>
