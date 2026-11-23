@@ -856,11 +856,11 @@ function WorkPage({ onSelect }) {
   );
 }
 
-function AboutArtwork({ title, onSelect, className }) {
+function AboutArtwork({ title, onSelect }) {
   const art = artworksByTitle.get(title);
 
   return (
-    <button type="button" className={`about-art ${className}`} onClick={() => onSelect(art)} aria-label={`View ${art.title}`}>
+    <button type="button" className="about-art" onClick={() => onSelect(art)} aria-label={`View ${art.title}`}>
       <img src={art.thumbnail} alt="" decoding="async" />
       <span>{art.title}</span>
     </button>
@@ -871,25 +871,28 @@ function AboutPage({ onSelect }) {
   return (
     <section className="about-page">
       <div className="about-inner">
-        <p className="about-label">About · Dion Nikila</p>
-        <div className="about-composition">
-          <h1 className="about-headline">
-            <span>Don't be</span>{" "}
-            <span>a stranger.</span>
-          </h1>
-          <AboutArtwork title="decay" className="about-art-decay" onSelect={onSelect} />
-          <AboutArtwork title="toph" className="about-art-toph" onSelect={onSelect} />
-          <AboutArtwork title="the bird of hermes" className="about-art-hermes" onSelect={onSelect} />
-          <AboutArtwork title="stone free" className="about-art-stone" onSelect={onSelect} />
+        <div className="about-hero">
+          <div className="about-essay">
+            <h1 className="about-headline">I'm Dion,<br /> I draw things</h1>
+            <div className="about-copy">
+              <p>I’m drawn to the details that make a pose recognizable, like the angle of a shoulder or the space between an arm and the torso. I work in acrylic on canvas and in watercolor and fineliner in my sketchbooks.</p>
+              <p>I built the gallery around a Möbius strip so the drawings have no obvious first or last. Follow one of the off-center lights and it takes two laps to get back where it started.</p>
+            </div>
+          </div>
+          <div className="about-feature">
+            <AboutArtwork title="decay" onSelect={onSelect} />
+          </div>
         </div>
 
-        <div className="about-essay">
-          <p className="about-intro">I’m Dion Nikila.<br /> I draw characters.</p>
-          <div className="about-copy">
-            <p>I’m drawn to the details that make a pose recognizable, like the angle of a shoulder or the space between an arm and the torso. I work in acrylic on canvas and in watercolor and fineliner in my sketchbooks.</p>
-            <p>I built the gallery around a Möbius strip so the drawings have no obvious first or last. Follow one of the off-center lights. After one lap it’s on the opposite side of the strip, and the second lap brings it home.</p>
-            <p>I make portraits, character art, covers, and posters. If you have a piece in mind, <a href="#/contact">send me a note</a>.</p>
-          </div>
+        <div className="about-studies">
+          <AboutArtwork title="the bird of hermes" onSelect={onSelect} />
+          <AboutArtwork title="toph" onSelect={onSelect} />
+          <AboutArtwork title="stone free" onSelect={onSelect} />
+        </div>
+
+        <div className="about-invitation">
+          <h2>Don't be a stranger.</h2>
+          <p>I make portraits, character art, covers, and posters. If you have a piece in mind, <a href="#/contact">send me a note</a>.</p>
         </div>
       </div>
     </section>
@@ -923,7 +926,7 @@ function SiteFooter() {
           <MobiusMark />
         </div>
         <div className="footer-bottom">
-          <p>© {new Date().getFullYear()} Dion Nikila · Sri Lanka</p>
+          <p>© {new Date().getFullYear()} Dion · Sri Lanka</p>
           <nav aria-label="Contact and socials">
             <a href={INSTAGRAM_URL}>Instagram</a>
             <a href={WHATSAPP_URL}>WhatsApp</a>
@@ -960,7 +963,7 @@ export default function MobiusPortfolio() {
 
   useEffect(() => {
     const pageTitle = location.isContact ? "Contact" : activeRoute.label;
-    document.title = activeRoute.path === "/" ? "The Chinese Satellite Archive | Art by Dion Nikila" : `${pageTitle} | The Chinese Satellite Archive`;
+    document.title = activeRoute.path === "/" ? "The Chinese Satellite Archive | Art by Dion" : `${pageTitle} | The Chinese Satellite Archive`;
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [activeRoute, location.isContact]);
 
@@ -988,7 +991,7 @@ export default function MobiusPortfolio() {
       <header className="fixed inset-x-0 top-0 z-30 border-b border-white/10 bg-[#02040a]/90 backdrop-blur-xl">
         <div className="mx-auto flex min-h-[72px] max-w-[1600px] items-center justify-between gap-2 px-4 sm:gap-5 sm:px-6 md:px-8">
           <a className="min-w-0 py-2" href="#/" onClick={() => setMenuOpen(false)}>
-            <div className="hidden text-[10px] uppercase tracking-[0.23em] text-sky-100/55 sm:block">Art by Dion Nikila</div>
+            <div className="hidden text-[10px] uppercase tracking-[0.23em] text-sky-100/55 sm:block">Art by Dion</div>
             <div className="text-sm leading-tight font-semibold tracking-tight text-white sm:text-xl">The Chinese Satellite Archive</div>
           </a>
 
