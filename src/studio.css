@@ -116,3 +116,12 @@
 @media (min-width: 65rem) {
   .studio-editor-layout { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
 }
+
+.studio-signin { display: grid; gap: .9rem; }
+.studio-login .studio-login-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: #0b1825;
+}

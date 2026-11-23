@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { availabilityOptions } from "./catalog.js";
-import { deploymentStatus, loadStudio, publishStudio, repository, thumbnailUrl } from "./studioGitHub.js";
+import { deploymentStatus, loadStudio, publishStudio, repository, signOutStudio, studioAuthStatus, thumbnailUrl } from "./studioGitHub.js";
 import { prepareImages } from "./studioImages.js";
 import "./studio.css";
 
@@ -10,7 +10,7 @@ function fileSize(bytes) {
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-function StudioLogin({ onConnect, busy, error }) {
+function StudioLogin({ onConnect, busy, error, authEnabled }) {
   const [token, setToken] = useState("");
 
   function submit(event) {
@@ -26,20 +26,28 @@ function StudioLogin({ onConnect, busy, error }) {
         <h1>Artwork studio</h1>
         <p>Upload pieces and manage what appears in the archive.</p>
       </div>
-      <form className="studio-panel" onSubmit={submit}>
-        <label className="studio-field">
-          GitHub access token
-          <input type="password" autoComplete="off" spellCheck={false} value={token}
-            onChange={(event) => setToken(event.target.value)} required placeholder="github_pat_…" />
-        </label>
-        <button type="submit" className="studio-primary" disabled={busy}>{busy ? "Connecting…" : "Connect to the archive"}</button>
+      <div className="studio-panel studio-signin">
+        {authEnabled === null ? (
+          <p role="status">Checking sign-in…</p>
+        ) : authEnabled ? (
+          <a className="studio-primary studio-login-link" href="/api/studio-auth?action=start">Sign in with GitHub</a>
+        ) : (
+          <p>GitHub sign-in is awaiting activation for this site.</p>
+        )}
         {error && <p className="studio-error" role="alert">{error}</p>}
         <details>
-          <summary>Set up studio access</summary>
-          <p>Create a <a href={tokenSettings} target="_blank" rel="noreferrer">fine-grained GitHub token</a> from <strong>dion-nikila</strong>. Select only <strong>Mobius-gallery</strong>, give <strong>Contents</strong> read and write access, and choose an expiration date.</p>
-          <p>The token is used only for this session. Store it in your password manager if you want to reuse it.</p>
+          <summary>Use a GitHub token instead</summary>
+          <form onSubmit={submit}>
+            <p>Use a <a href={tokenSettings} target="_blank" rel="noreferrer">fine-grained token</a> from <strong>dion-nikila</strong> with Contents read and write access to <strong>Mobius-gallery</strong>.</p>
+            <label className="studio-field">
+              GitHub access token
+              <input type="password" autoComplete="off" spellCheck={false} value={token}
+                onChange={(event) => setToken(event.target.value)} required placeholder="github_pat_…" />
+            </label>
+            <button type="submit" className="studio-secondary" disabled={busy}>{busy ? "Connecting…" : "Connect with token"}</button>
+          </form>
         </details>
-      </form>
+      </div>
     </div>
   );
 }
@@ -118,6 +126,7 @@ function ArtworkEditor({ artwork, preview, upload, blocked, preparing, onChange,
 
 export default function StudioPage() {
   const [session, setSession] = useState(null);
+  const [authEnabled, setAuthEnabled] = useState(null);
   const [artworks, setArtworks] = useState([]);
   const [uploads, setUploads] = useState({});
   const [selection, setSelection] = useState("");
@@ -125,13 +134,18 @@ export default function StudioPage() {
   const [show, setShow] = useState("all");
   const [busy, setBusy] = useState("");
   const [imageLoading, setImageLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => {
+    const code = new URLSearchParams(window.location.hash.split("?")[1]).get("auth");
+    if (code === "access") return "Sign in as dion-nikila and check that the GitHub App has access to Mobius-gallery.";
+    if (code === "retry") return "Sign-in didn’t complete. Please try again.";
+    return "";
+  });
   const [deployment, setDeployment] = useState(null);
   const action = useRef(false);
   const selectedIndex = artworks.findIndex((artwork) => artwork.id === selection);
   const selected = artworks[selectedIndex];
   const changed = session && (JSON.stringify(artworks) !== JSON.stringify(session.snapshot.artworks) || Object.keys(uploads).length > 0);
-  const blocked = Boolean(busy) || imageLoading;
+  const blocked = Boolean(busy) || imageLoading || authEnabled === null;
 
   useEffect(() => {
     if (!changed && !busy && !imageLoading) return;
@@ -167,12 +181,34 @@ export default function StudioPage() {
     };
   }, [deployingSha]);
 
-  function setSnapshot(token, snapshot) {
+  const setSnapshot = useCallback((token, snapshot) => {
     setSession({ token, snapshot });
     setArtworks(snapshot.artworks);
     setSelection(snapshot.artworks[0]?.id ?? "");
     setUploads({});
-  }
+  }, []);
+
+  useEffect(() => {
+    let stopped = false;
+    async function restore() {
+      try {
+        const status = await studioAuthStatus().catch(() => ({ enabled: false, signedIn: false }));
+        if (stopped) return;
+        if (status.enabled && status.signedIn) {
+          const snapshot = await loadStudio(null);
+          if (!stopped) setSnapshot(null, snapshot);
+        }
+        if (!stopped) setAuthEnabled(Boolean(status.enabled));
+      } catch (err) {
+        if (!stopped) {
+          setAuthEnabled(true);
+          setError(err.message);
+        }
+      }
+    }
+    restore();
+    return () => { stopped = true; };
+  }, [setSnapshot]);
 
   async function connect(token) {
     if (action.current) return;
@@ -193,8 +229,21 @@ export default function StudioPage() {
     }
   }
 
-  function leave(archive) {
-    if (changed && !window.confirm("Discard unpublished changes?")) return;
+  async function leave(archive) {
+    if (action.current || (changed && !window.confirm("Discard unpublished changes?"))) return;
+    if (!archive && session && !session.token) {
+      action.current = true;
+      setBusy("Signing out…");
+      try {
+        await signOutStudio();
+      } catch (err) {
+        setError(err.message);
+        return;
+      } finally {
+        action.current = false;
+        setBusy("");
+      }
+    }
     setSession(null);
     setArtworks([]);
     setUploads({});
@@ -314,7 +363,7 @@ export default function StudioPage() {
           </div>}
         </header>
         {!session ? (
-          <StudioLogin onConnect={connect} error={error} busy={Boolean(busy)} />
+          <StudioLogin onConnect={connect} error={error} busy={blocked} authEnabled={authEnabled} />
         ) : (
           <>
             <div className="studio-title">
