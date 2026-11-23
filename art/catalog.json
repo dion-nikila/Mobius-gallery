@@ -14,6 +14,18 @@
       "availability": "inquire"
     },
     {
+      "id": "tomura-shigaraki",
+      "title": "Tomura Shigaraki",
+      "legacyTitle": "Tomura Shigaraki",
+      "image": "art/Tomura Shigaraki.jpg",
+      "thumbnail": "art/thumbnails/Tomura Shigaraki.jpg",
+      "year": "2026",
+      "medium": "Watercolor and fineliner on sketchbook paper",
+      "visible": true,
+      "featured": false,
+      "availability": "inquire"
+    },
+    {
       "id": "eight-handled-sword-divergent-sila-divine-general-mahoraga",
       "title": "Eight-Handled Sword Divergent Sila Divine General Mahoraga",
       "legacyTitle": "Eight Handled Sword Divergent Sila Divine General Mahoraga",
@@ -105,18 +117,6 @@
       "thumbnail": "art/thumbnails/The black Swordsman.jpg",
       "year": "2023",
       "medium": "Acrylic on canvas, wooden frame",
-      "visible": true,
-      "featured": false,
-      "availability": "inquire"
-    },
-    {
-      "id": "tomura-shigaraki",
-      "title": "Tomura Shigaraki",
-      "legacyTitle": "Tomura Shigaraki",
-      "image": "art/Tomura Shigaraki.jpg",
-      "thumbnail": "art/thumbnails/Tomura Shigaraki.jpg",
-      "year": "2026",
-      "medium": "Watercolor and fineliner on sketchbook paper",
       "visible": true,
       "featured": false,
       "availability": "inquire"
