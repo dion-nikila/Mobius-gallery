@@ -12,7 +12,7 @@ const steps = [
   ["Receive the art", "I’ll send the finished digital files once the balance clears. We’ll agree on delivery separately for physical work."],
 ];
 
-function RequestForm({ type, artwork, onChoose, formRef }) {
+function RequestForm({ type, artwork, onChoose, formRef, postcard = false }) {
   const [submission, setSubmission] = useState(null);
   const sending = useRef(false);
   const context = `${type}:${artwork?.title ?? ""}`;
@@ -55,7 +55,7 @@ function RequestForm({ type, artwork, onChoose, formRef }) {
 
   if (status === "sent") {
     return (
-      <section ref={formRef} tabIndex={-1} className="scroll-mt-24 archive-panel p-5 md:p-7">
+      <section ref={formRef} tabIndex={-1} className={postcard ? "postcard-form" : "scroll-mt-24 archive-panel p-5 md:p-7"}>
         <div role="status">
           <h2 className="text-2xl font-semibold">Your request was sent</h2>
           <p className="mt-3 break-words text-sm leading-6 text-sky-100/78">I’ll reply to <strong>{submission.email}</strong> soon.</p>
@@ -66,8 +66,8 @@ function RequestForm({ type, artwork, onChoose, formRef }) {
   }
 
   return (
-    <form ref={formRef} tabIndex={-1} onSubmit={submit} aria-busy={status === "sending"} className="min-w-0 self-start archive-panel p-5 md:p-7">
-      <h2 className="text-2xl font-semibold tracking-tight">{isBuying ? "Ask to buy" : isGeneral ? "Send a message" : "Request a quote"}</h2>
+    <form ref={formRef} tabIndex={-1} onSubmit={submit} aria-busy={status === "sending"} className={postcard ? "postcard-form" : "min-w-0 self-start archive-panel p-5 md:p-7"}>
+      {!postcard && <h2 className="text-2xl font-semibold tracking-tight">{isBuying ? "Ask to buy" : isGeneral ? "Send a message" : "Request a quote"}</h2>}
       <fieldset disabled={status === "sending"} className="min-w-0">
         {!isGeneral && <label className={`mt-4 ${label}`}>
           Request type
@@ -98,7 +98,7 @@ function RequestForm({ type, artwork, onChoose, formRef }) {
             onChange={(event) => event.target.setCustomValidity("")}
             placeholder={isBuying
               ? (artwork ? "For example, the size you want or where it would need to ship." : "Include the title or describe the piece you’re looking for.")
-              : "A few sentences are enough. Include a link to any references if you have one."} />
+              : isGeneral ? "Write a note to Dion." : "A few sentences are enough. Include a link to any references if you have one."} />
         </label>
 
         <div hidden><input name="website" tabIndex={-1} autoComplete="off" aria-label="Leave blank" /></div>
@@ -115,7 +115,7 @@ function RequestForm({ type, artwork, onChoose, formRef }) {
   );
 }
 
-export default function CommissionPage({ type, artwork, formRef, isContact, visual }) {
+export default function CommissionPage({ type, artwork, formRef, isContact, postcardArt, visual }) {
   const selected = requestTypes.some((item) => item.id === type) ? type : offers[0].id;
   const isBuying = selected === "artwork";
 
@@ -125,29 +125,45 @@ export default function CommissionPage({ type, artwork, formRef, isContact, visu
     if (focusForm) formRef.current?.focus();
   }
 
+  if (isContact) {
+    return (
+      <section className="contact-page">
+        <div className="digital-postcard">
+          <header className="postcard-front">
+            <img src={postcardArt.thumbnail} alt="" className="postcard-stamp" />
+            <p className="exhibit-index">To · Dion Nikila</p>
+            <h1>Send a note.</h1>
+            <a href={INSTAGRAM_URL}>@thechinese.satellite</a>
+          </header>
+          <RequestForm type="general" formRef={formRef} postcard />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="archive-page px-5 pb-20 pt-28 md:pt-32">
       <div className="mx-auto max-w-7xl">
       <header className="archive-heading pb-7">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-200/70">The Chinese Satellite Archive</p>
-        <h1 className="archive-title mt-3">{isContact ? "Get in touch" : isBuying ? "Buy existing art" : "Commission a piece"}</h1>
-        <p className="mt-3 max-w-xl text-base leading-7 text-sky-100/73">{isContact ? "For collaborations, commissions, or questions about the artwork, reach me directly or send a message below." : isBuying ? "Ask about an original or a print before paying." : "Choose what you’d like made and tell me a little about it. You’ll get a personal reply before deciding whether to book."}</p>
+        <h1 className="archive-title mt-3">{isBuying ? "Buy existing art" : "Get a quote"}</h1>
+        <p className="mt-3 max-w-xl text-base leading-7 text-sky-100/73">{isBuying ? "Ask about an original or a print before paying." : "A rough idea is enough to start. Tell me what you want made, who it’s for, and where it will appear. I’ll reply with a proposal before you decide whether to book."}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <a href={INSTAGRAM_URL} className={button}>@thechinese.satellite</a>
           <a href={WHATSAPP_URL} className={button}>WhatsApp</a>
         </div>
       </header>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:gap-10">
+      <div className="quote-layout">
         <RequestForm type={selected} artwork={artwork} onChoose={choose} formRef={formRef} />
 
-        {isContact && visual}
-        {!isContact && <aside className="min-w-0">
-          <h2 className="text-lg font-semibold">Commission options</h2>
+        <aside className="quote-guide">
+          {visual}
+          <h2 className="exhibit-title">What can we make?</h2>
           <div className="mt-3 grid gap-2.5">
             {offers.map((offer) => (
               <button key={offer.id} type="button" aria-pressed={selected === offer.id} onClick={() => choose(offer.id, artwork?.title, true)}
-                className="archive-panel p-4 text-left hover:border-sky-100/45 aria-pressed:border-sky-300/55 aria-pressed:bg-sky-300/[.08]">
+                className="quote-option">
                 <span className="block font-semibold">{offer.title}</span>
                 <span className="mt-1.5 block text-sm leading-6 text-sky-100/72">{offer.description}</span>
               </button>
@@ -157,21 +173,21 @@ export default function CommissionPage({ type, artwork, formRef, isContact, visu
             <a href="#/work" className="inline-flex min-h-11 items-center text-sky-100 underline underline-offset-4">Browse existing art</a>
             <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-sky-100 underline underline-offset-4">Ask on WhatsApp</a>
           </div>
-        </aside>}
+        </aside>
       </div>
 
-      {!isContact && <section className="mt-10 border-t border-white/12 pt-7">
+      <section className="mt-10 border-t border-white/12 pt-7">
         <h2 className="text-2xl font-semibold">What happens next</h2>
-        <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="quote-process">
           {steps.map(([title, description]) => (
-            <li key={title} className="archive-panel p-4">
+            <li key={title} className="quote-step">
               <h3 className="mt-2 font-semibold">{title}</h3>
               <p className="mt-1.5 text-sm leading-6 text-sky-100/72">{description}</p>
             </li>
           ))}
         </ol>
-        <p className="mt-5 max-w-3xl text-sm leading-6 text-sky-100/70">I’ll confirm the payment method, usage rights, and any cancellation terms in your quote.</p>
-      </section>}
+        <p className="mt-5 max-w-3xl text-sm leading-6 text-sky-100/70">For a cover, poster, or other commercial work, tell me where you plan to use it. I’ll confirm the usage rights, payment method, and cancellation terms in the quote.</p>
+      </section>
       </div>
     </section>
   );

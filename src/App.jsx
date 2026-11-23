@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { motion, AnimatePresence, MotionConfig, useReducedMotion } from "framer-motion";
 import CommissionPage from "./CommissionPage";
 import { commissionLink, INSTAGRAM_URL } from "./commissions";
@@ -50,47 +50,44 @@ const artworkThumbnails = new Map(
   Object.entries(artworkThumbnailModules).map(([path, image]) => [titleFromArtworkPath(path), image])
 );
 
+const canvasMedium = "Acrylic on canvas, wooden frame";
+const sketchbookMedium = "Watercolor and fineliner on sketchbook paper";
+const artworkCatalog = {
+  decay: { year: "2021", medium: canvasMedium },
+  explode: { year: "2022", medium: canvasMedium },
+  toph: { year: "2021", medium: canvasMedium },
+  "the black swordsman": { year: "2023", medium: canvasMedium },
+  "the bird of hermes": { year: "2024", medium: sketchbookMedium },
+  "eight handled sword divergent sila divine general mahoraga": { year: "2025", medium: sketchbookMedium },
+  "golden experience": { year: "2025", medium: sketchbookMedium },
+  "hail to the thief": { year: "2025", medium: sketchbookMedium },
+  "monkey d. luffy": { year: "2025", medium: sketchbookMedium },
+  "stone free": { year: "2026", medium: sketchbookMedium },
+  "tomura shigaraki": { year: "2026", medium: sketchbookMedium },
+  tusk: { year: "2026", medium: sketchbookMedium },
+};
+
 const artworks = artworkEntries.map(({ image, title }) => ({
   title,
   image,
   thumbnail: artworkThumbnails.get(title) ?? image,
-  year: "2026",
-  medium: "Portfolio study",
+  ...artworkCatalog[title.toLowerCase()],
 }));
 
-const studioNotes = [
-  {
-    title: "Why the strip loops",
-    date: "The gallery",
-    summary:
-      "A Möbius strip has one continuous surface. I used that shape to make a gallery you can turn and return to, instead of a row of images with an obvious beginning and end.",
-  },
-  {
-    title: "Character studies",
-    date: "The archive",
-    summary:
-      "The archive brings together drawings of characters from manga, anime, and animation. They’re a record of what I notice in those designs, from a silhouette to a pose or expression.",
-  },
-  {
-    title: "Starting a commission",
-    date: "The studio",
-    summary:
-      "A subject, a deadline, and a few references are enough to start. If a piece in the archive has the mood or treatment you want, mention its title when you get in touch.",
-  },
-];
+const artworksByTitle = new Map(artworks.map((art) => [art.title.toLowerCase(), art]));
 
 const routes = [
   { path: "/", label: "Home" },
   { path: "/work", label: "Browse art" },
   { path: "/about", label: "About" },
-  { path: "/journal", label: "Journal" },
   { path: "/commissions", label: "Get a quote" },
 ];
 
 function readLocation() {
   const [hashPath, search = ""] = window.location.hash.slice(1).split("?");
   const legacyPath = "/" + (window.location.pathname.split("/").filter(Boolean).at(-1) ?? "");
-  const path = hashPath.startsWith("/") ? hashPath.replace(/\/+$/, "") || "/" : legacyPath;
+  const requestedPath = hashPath.startsWith("/") ? hashPath.replace(/\/+$/, "") || "/" : legacyPath;
+  const path = requestedPath === "/journal" ? "/about" : requestedPath;
   const params = new URLSearchParams(search);
   const isContact = path === "/contact";
 
@@ -121,28 +118,22 @@ function useDocumentVisibility() {
   return isVisible;
 }
 
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth < 768 : false
-  );
+const mobileViewport = window.matchMedia("(width < 48rem)");
 
-  useEffect(() => {
-    function handler() {
-      setIsMobile(window.innerWidth < 768);
-    }
+function subscribeToViewport(onChange) {
+  mobileViewport.addEventListener("change", onChange);
+  return () => mobileViewport.removeEventListener("change", onChange);
+}
 
-    window.addEventListener("resize", handler);
-    return () => window.removeEventListener("resize", handler);
-  }, []);
-
-  return isMobile;
+function getIsMobile() {
+  return mobileViewport.matches;
 }
 
 function ArtworkImage({ art }) {
   const [imageState, setImageState] = useState("loading");
 
   return (
-    <div className="relative h-[min(52dvh,520px)] min-h-[180px] overflow-hidden bg-black md:h-auto md:min-h-[min(70dvh,640px)]">
+    <div className="artwork-image">
       {imageState !== "ready" && (
         <img src={art.thumbnail} alt={art.title} className="absolute inset-0 h-full w-full object-contain" />
       )}
@@ -222,7 +213,7 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="artwork-title"
-            className="archive-dialog relative grid max-h-[94dvh] w-full max-w-6xl grid-cols-1 overflow-y-auto overscroll-contain md:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]"
+            className="archive-dialog artwork-viewer"
             initial={{ scale: 0.97, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.97, opacity: 0 }}
@@ -231,59 +222,52 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
           >
             <div className="exhibit-toolbar">
               <span aria-live="polite">Artwork {index + 1} / {artworks.length}</span>
-              <button
-              type="button"
-              aria-label="Close artwork detail"
-              onClick={onClose}
-              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/55 text-xl leading-none text-white backdrop-blur-sm transition hover:bg-sky-900"
-            >
-              ×
-              </button>
+              <button type="button" aria-label="Close artwork detail" onClick={onClose} className="viewer-control">×</button>
             </div>
 
-            <div className="exhibit-stage">
+            <div className="viewer-image-panel">
               <ArtworkImage key={art.image} art={art} />
             </div>
 
-            <div className="archive-detail relative flex min-w-0 flex-col justify-between p-4 md:p-8">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(125,211,252,0.10),transparent_32%)]" />
-
-              <div className="relative">
+            <div className="viewer-details">
+              <div>
                 <h2 id="artwork-title" className="exhibit-title">{art.title}</h2>
-                <a href={art.image} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-sm text-sky-100 underline underline-offset-4">Open full-resolution image</a>
-                <div className="exhibit-film" aria-label="Browse nearby artwork">
+                <dl className="artwork-facts">
+                  {art.year && <div><dt>Year</dt><dd>{art.year}</dd></div>}
+                  {art.medium && <div><dt>Medium</dt><dd>{art.medium}</dd></div>}
+                </dl>
+                <a href={art.image} target="_blank" rel="noopener noreferrer" className="viewer-image-link">Open full-resolution image</a>
+              </div>
+
+              <div className="viewer-footer">
+                <div className="viewer-actions">
+                  <a href={commissionLink("portrait", art.title)}
+                    onClick={(event) => {
+                      if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onInquire();
+                    }} className="viewer-primary">
+                    Commission in this style
+                  </a>
+                  <a href={commissionLink("artwork", art.title)}
+                    onClick={(event) => {
+                      if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onInquire();
+                    }} className="viewer-secondary">
+                    Ask to buy
+                  </a>
+                </div>
+                <div className="viewer-film" role="group" aria-label="Browse nearby artwork">
+                  <button type="button" className="viewer-control" onClick={() => onNavigate(-1)} aria-label="Previous artwork">‹</button>
                   {neighbors.map((offset) => {
                     const piece = artworks[mod(index + offset, artworks.length)];
                     return offset === 0 ? (
-                      <img key={offset} src={piece.thumbnail} alt="" className="exhibit-current" />
+                      <img key={offset} src={piece.thumbnail} alt="" className="viewer-current" />
                     ) : (
-                      <button key={offset} type="button" onClick={() => onNavigate(offset)} aria-label={`${offset < 0 ? "Previous" : "Next"} artwork: ${piece.title}`}>
+                      <button key={offset} type="button" onClick={() => onNavigate(offset)} aria-label={`View ${piece.title}`}>
                         <img src={piece.thumbnail} alt="" />
                       </button>
                     );
                   })}
+                  <button type="button" className="viewer-control" onClick={() => onNavigate(1)} aria-label="Next artwork">›</button>
                 </div>
-              </div>
-
-              <div className="relative mt-6 grid gap-2">
-                <a
-                  href={commissionLink("portrait", art.title)}
-                  onClick={(event) => {
-                    if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onInquire();
-                  }}
-                  className="inline-flex min-h-11 w-fit items-center rounded-full bg-sky-50 px-4 py-2 text-sm font-semibold text-[#07111b] transition hover:bg-white"
-                >
-                  Commission in this style
-                </a>
-                <a
-                  href={commissionLink("artwork", art.title)}
-                  onClick={(event) => {
-                    if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onInquire();
-                  }}
-                  className="inline-flex min-h-11 w-fit items-center text-sm text-sky-100/80 underline underline-offset-4 transition hover:text-white"
-                >
-                  Ask to buy this piece
-                </a>
               </div>
             </div>
           </motion.div>
@@ -305,6 +289,7 @@ function GridGallery({ artworksToShow, onSelect }) {
             </div>
             <h2 className="break-words px-3 py-3 text-sm font-semibold leading-snug text-white sm:px-5 sm:text-xl">{art.title}</h2>
           </button>
+          {art.year && <p className="px-3 text-sm text-sky-100/70 sm:px-5">{art.year}</p>}
           <a href={commissionLink("artwork", art.title)} aria-label={`Ask to buy ${art.title}`} className="mt-auto inline-flex min-h-11 items-center self-start px-3 text-sm text-sky-100/85 underline underline-offset-4 sm:px-5">Ask to buy</a>
         </article>
       ))}
@@ -423,6 +408,18 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
   const touchRef = useRef({ active: false, startX: 0, startY: 0 });
   const pointerRef = useRef({ active: false, startX: 0, startY: 0 });
   const suppressClick = useRef(0);
+  const stageRef = useRef(null);
+  const [stageScale, setStageScale] = useState(1);
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return undefined;
+    const resize = () => setStageScale(stage.clientHeight / 500);
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
   const count = artworks.length;
   const reduceMotion = useReducedMotion();
   const mobileMobius = useMemo(() => createMobileMobiusVisual(), []);
@@ -451,7 +448,7 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
 
   return (
     <div
-      className="relative min-h-[100dvh] overflow-x-clip bg-[#02040a] px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(96px+env(safe-area-inset-top))] text-white outline-none"
+      className="mobile-gallery relative overflow-x-clip bg-[#02040a] px-5 text-white outline-none"
       tabIndex={0}
       aria-label="Artwork carousel"
       onKeyDown={(event) => {
@@ -504,11 +501,12 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
         `}
       </style>
 
-      <div className="pointer-events-none absolute right-5 top-[108px] z-20 font-mono text-xs text-white/30">
+      <div className="pointer-events-none absolute right-5 top-[85px] z-20 font-mono text-xs text-white/30">
         {String(activeIndex + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}
       </div>
 
-      <div className="relative mx-auto h-[500px] w-full max-w-[450px] shrink-0">
+      <div ref={stageRef} className="mobile-gallery-stage">
+        <div className="mobile-gallery-scene" style={{ "--scene-scale": stageScale }}>
         <div className="pointer-events-none absolute left-1/2 top-[112px] h-72 w-[124vw] max-w-[560px] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(137,195,230,0.07),rgba(56,84,105,0.034)_38%,transparent_72%)] blur-2xl" />
 
         <svg
@@ -648,9 +646,10 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
           })}
         </div>
 
+        </div>
       </div>
 
-      <div className="relative z-20 -mt-3 text-center">
+      <div className="relative z-20 text-center">
         <div className="mx-auto flex max-w-sm items-center justify-center gap-4">
           <button
             type="button"
@@ -661,7 +660,7 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
             ‹
           </button>
 
-          <h2 className="min-w-0 flex-1 text-lg font-bold leading-tight text-white">{activeArtwork.title}</h2>
+          <h2 className="mobile-gallery-title min-w-0 flex-1 text-base font-bold leading-tight text-white">{activeArtwork.title}</h2>
 
           <button
             type="button"
@@ -744,11 +743,11 @@ function supportsWebGL() {
   }
 }
 
-function DesktopGalleryPreview({ onSelect, loading }) {
+function DesktopGalleryPreview({ onSelect }) {
   const featured = artworks[Math.floor(artworks.length / 2)];
 
   return (
-    <div className="desktop-gallery-preview" aria-busy={loading}>
+    <div className="desktop-gallery-preview">
       <div className="desktop-gallery-orbit" aria-hidden="true" />
       <button type="button" className="desktop-gallery-art" onClick={() => onSelect(featured)} aria-label={`Open ${featured.title}`}>
         <img src={featured.thumbnail} alt="" decoding="async" />
@@ -765,13 +764,12 @@ function DesktopGalleryPreview({ onSelect, loading }) {
 }
 
 function HomePage({ onSelect }) {
-  const isMobile = useIsMobile();
+  const isMobile = useSyncExternalStore(subscribeToViewport, getIsMobile);
   const isVisible = useDocumentVisibility();
   const reduceMotion = useReducedMotion();
   const [activeIndex, setActiveIndex] = useState(null);
   const [failed, setFailed] = useState(false);
-  const [webGLAvailable] = useState(() => !isMobile && !reduceMotion ? supportsWebGL() : null);
-  const canUseWebGL = useMemo(() => !isMobile && !reduceMotion && (webGLAvailable ?? supportsWebGL()), [isMobile, reduceMotion, webGLAvailable]);
+  const canUseWebGL = useMemo(() => !isMobile && !reduceMotion && supportsWebGL(), [isMobile, reduceMotion]);
   const motionRef = useRef({ progress: 0, velocity: 0 });
   const drag = useRef(null);
 
@@ -784,14 +782,15 @@ function HomePage({ onSelect }) {
   }
 
   return (
-    <section className="relative min-h-[100dvh] overflow-x-clip md:min-h-[max(100dvh,680px)]" aria-label="Möbius artwork gallery">
+    <section className="relative min-h-svh overflow-x-clip md:min-h-[max(100svh,680px)]" aria-label="Möbius artwork gallery">
       {isMobile && <ArcCarousel artworks={artworks} onSelect={onSelect} navigate={navigate} />}
-      {!isMobile && !ready && <DesktopGalleryPreview onSelect={onSelect} loading={use3D} />}
+      {!isMobile && !use3D && <DesktopGalleryPreview onSelect={onSelect} />}
+      {use3D && !ready && <p className="desktop-gallery-loading" role="status">Loading the archive</p>}
 
       {use3D && (
         <div
           data-gallery="3d"
-          className={`absolute inset-0 transition-opacity duration-500 ${ready ? "opacity-100" : "pointer-events-none opacity-0"}`}
+          className={`desktop-gallery-canvas absolute inset-0 transition-opacity duration-500 ${ready ? "opacity-100" : "pointer-events-none opacity-0"}`}
           onWheel={(event) => {
             motionRef.current.velocity = Math.min(1.15, Math.max(-1.15, motionRef.current.velocity + event.deltaY * 0.00128));
           }}
@@ -870,54 +869,55 @@ function ArchiveCollage({ pieces, onSelect }) {
   );
 }
 
-function AboutPage({ onSelect }) {
+function AboutArtwork({ title, onSelect, className }) {
+  const art = artworksByTitle.get(title);
+
   return (
-    <PageShell eyebrow="About the artist" title="Dion Nikila" intro="I draw characters, then build strange places for them to live.">
-      <div className="archive-editorial">
-        <ArchiveCollage pieces={[artworks[4], artworks[1], artworks[8]]} onSelect={onSelect} />
-        <div className="archive-about-copy space-y-5 p-6 text-base leading-8 text-sky-100/85 sm:p-8">
-          <h2 className="exhibit-title">A gallery with one side</h2>
-          <p>I’m drawn to characters you can recognize from a silhouette or a single gesture. This archive brings those studies together in a gallery that folds back on itself.</p>
-          <p>I also make portraits, original characters, covers, and posters. Tell me a little about the world you want the work to belong to.</p>
-          <div className="flex flex-wrap gap-x-6">
-            <a href="#/contact" className="inline-flex min-h-11 items-center underline underline-offset-4">Get in touch</a>
-            <a href={INSTAGRAM_URL} className="inline-flex min-h-11 items-center underline underline-offset-4">@thechinese.satellite</a>
-          </div>
-        </div>
-      </div>
-      <div className="archive-route-links">
-        <a href="#/work">Browse the archive</a>
-        <a href="#/journal">Read the studio notes</a>
-      </div>
-    </PageShell>
+    <button type="button" className={`about-art ${className}`} onClick={() => onSelect(art)} aria-label={`View ${art.title}`}>
+      <img src={art.thumbnail} alt="" decoding="async" />
+      <span>{art.title}</span>
+    </button>
   );
 }
 
-function JournalPage({ onSelect }) {
+function AboutPage({ onSelect }) {
   return (
-    <PageShell eyebrow="Journal" title="Studio notes" intro="Notes on the loop, character studies, and what goes into a commission.">
-      <div className="journal-grid">
-        {studioNotes.map((note, index) => {
-          const piece = artworks[[3, 7, 10][index]];
-          return (
-            <article key={note.title} className="journal-entry">
-              <button type="button" className="journal-image" onClick={() => onSelect(piece)} aria-label={`View ${piece.title}`}>
-                <img src={piece.thumbnail} alt="" loading="lazy" decoding="async" />
-              </button>
-              <div className="p-5 sm:p-7">
-                <p className="exhibit-index">{note.date}</p>
-                <h2 className="exhibit-title mt-3">{note.title}</h2>
-                <p className="mt-4 leading-7 text-sky-100/80">{note.summary}</p>
-              </div>
-            </article>
-          );
-        })}
+    <section className="about-page">
+      <div className="about-inner">
+        <p className="about-label">About · Dion Nikila</p>
+        <div className="about-composition">
+          <h1 className="about-headline">
+            <span>Drawn</span>
+            <span>by hand.</span>
+            <span>Housed in a loop.</span>
+          </h1>
+          <AboutArtwork title="decay" className="about-art-decay" onSelect={onSelect} />
+          <AboutArtwork title="toph" className="about-art-toph" onSelect={onSelect} />
+          <AboutArtwork title="the bird of hermes" className="about-art-hermes" onSelect={onSelect} />
+          <AboutArtwork title="stone free" className="about-art-stone" onSelect={onSelect} />
+        </div>
+
+        <div className="about-notes">
+          <section>
+            <h2>What I look for</h2>
+            <p>I’m Dion Nikila, an illustrator based in Sri Lanka. I’m drawn to characters you can recognize from a silhouette or a single gesture. Sometimes the angle of a shoulder or the space between an arm and the torso is enough. I work in acrylic on canvas and in watercolor and fineliner in my sketchbooks.</p>
+          </section>
+          <section>
+            <h2>Why the gallery loops</h2>
+            <p>I built the archive on a Möbius strip so there’d be no obvious first or last drawing. Follow one of the off-center lights. It comes back on the opposite side after one lap and takes a second lap to return to where it started.</p>
+          </section>
+          <section>
+            <h2>Working together</h2>
+            <p>I make portraits, original character art, covers, and posters. If you have a rough idea, tell me where it will appear and what you want someone to notice first. A drawing from the archive, a reference, or a deadline can help us get started.</p>
+          </section>
+        </div>
+        <div className="about-links">
+          <a href="#/work">Browse the archive</a>
+          <a href={commissionLink()}>Get a quote</a>
+          <a href={INSTAGRAM_URL}>@thechinese.satellite</a>
+        </div>
       </div>
-      <div className="archive-route-links">
-        <a href="#/about">About the artist</a>
-        <a href="#/contact">Get in touch</a>
-      </div>
-    </PageShell>
+    </section>
   );
 }
 
@@ -1045,7 +1045,7 @@ export default function MobiusPortfolio() {
       <main className="relative min-h-screen">
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeRoute.path}
+            key={location.isContact ? "/contact" : activeRoute.path}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -1056,9 +1056,8 @@ export default function MobiusPortfolio() {
             )}
             {activeRoute.path === "/work" && <WorkPage onSelect={setModalArt} />}
             {activeRoute.path === "/about" && <AboutPage onSelect={setModalArt} />}
-            {activeRoute.path === "/journal" && <JournalPage onSelect={setModalArt} />}
             {activeRoute.path === "/commissions" && (
-              <CommissionPage type={location.type} artwork={inquiryArt} formRef={formRef} isContact={location.isContact} visual={<ArchiveCollage pieces={[artworks[0], artworks[5], artworks[9]]} onSelect={setModalArt} />} />
+              <CommissionPage type={location.type} artwork={inquiryArt} formRef={formRef} isContact={location.isContact} postcardArt={artworksByTitle.get("the bird of hermes")} visual={<ArchiveCollage pieces={[artworks[0], artworks[5], artworks[9]]} onSelect={setModalArt} />} />
             )}
           </motion.div>
         </AnimatePresence>
