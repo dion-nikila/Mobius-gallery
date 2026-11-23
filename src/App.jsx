@@ -1,7 +1,7 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { motion, AnimatePresence, MotionConfig, useReducedMotion } from "framer-motion";
 import CommissionPage from "./CommissionPage";
-import { commissionLink, INSTAGRAM_URL } from "./commissions";
+import { commissionLink, CONTACT_EMAIL, INSTAGRAM_URL, WHATSAPP_NUMBER, WHATSAPP_URL } from "./commissions";
 
 const TAU = Math.PI * 2;
 const landingTitle = "sycophantic, prophetic, socratic junkie wannabe";
@@ -156,7 +156,7 @@ function ArtworkImage({ art }) {
 
 function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
   const index = artworks.indexOf(art);
-  const neighbors = [-1, 0, 1];
+  const nearby = [-1, 1].map((direction) => ({ piece: artworks[mod(index + direction, artworks.length)], direction }));
   const dialogRef = useRef(null);
   const isOpen = Boolean(art);
 
@@ -169,8 +169,10 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
 
     function handleKeyDown(event) {
       if (event.key === "Escape") onClose();
-      if (event.key === "ArrowLeft") onNavigate(-1);
-      if (event.key === "ArrowRight") onNavigate(1);
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        event.preventDefault();
+        onNavigate(event.key === "ArrowLeft" ? -1 : 1);
+      }
       if (event.key !== "Tab") return;
 
       const buttons = dialogRef.current?.querySelectorAll("button, a[href]");
@@ -221,17 +223,17 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="exhibit-toolbar">
-              <span aria-live="polite">Artwork {index + 1} / {artworks.length}</span>
               <button type="button" aria-label="Close artwork detail" onClick={onClose} className="viewer-control">×</button>
             </div>
 
             <div className="viewer-image-panel">
+              <img className="viewer-image-glow" src={art.thumbnail} alt="" aria-hidden="true" />
               <ArtworkImage key={art.image} art={art} />
             </div>
 
             <div className="viewer-details">
               <div>
-                <h2 id="artwork-title" className="exhibit-title">{art.title}</h2>
+                <h2 id="artwork-title" className="exhibit-title" aria-live="polite">{art.title}</h2>
                 <dl className="artwork-facts">
                   {art.year && <div><dt>Year</dt><dd>{art.year}</dd></div>}
                   {art.medium && <div><dt>Medium</dt><dd>{art.medium}</dd></div>}
@@ -255,18 +257,15 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
                   </a>
                 </div>
                 <div className="viewer-film" role="group" aria-label="Browse nearby artwork">
-                  <button type="button" className="viewer-control" onClick={() => onNavigate(-1)} aria-label="Previous artwork">‹</button>
-                  {neighbors.map((offset) => {
-                    const piece = artworks[mod(index + offset, artworks.length)];
-                    return offset === 0 ? (
-                      <img key={offset} src={piece.thumbnail} alt="" className="viewer-current" />
-                    ) : (
-                      <button key={offset} type="button" onClick={() => onNavigate(offset)} aria-label={`View ${piece.title}`}>
-                        <img src={piece.thumbnail} alt="" />
-                      </button>
-                    );
-                  })}
-                  <button type="button" className="viewer-control" onClick={() => onNavigate(1)} aria-label="Next artwork">›</button>
+                  {nearby.map(({ piece, direction }) => (
+                    <button key={direction} type="button" onClick={() => onNavigate(direction)}>
+                      <img src={piece.thumbnail} alt="" />
+                      <span>
+                        <small>{direction < 0 ? "Previous" : "Next"}</small>
+                        <span>{piece.title}</span>
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -501,10 +500,6 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
         `}
       </style>
 
-      <div className="pointer-events-none absolute right-5 top-[85px] z-20 font-mono text-xs text-white/30">
-        {String(activeIndex + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}
-      </div>
-
       <div ref={stageRef} className="mobile-gallery-stage">
         <div className="mobile-gallery-scene" style={{ "--scene-scale": stageScale }}>
         <div className="pointer-events-none absolute left-1/2 top-[112px] h-72 w-[124vw] max-w-[560px] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(137,195,230,0.07),rgba(56,84,105,0.034)_38%,transparent_72%)] blur-2xl" />
@@ -675,7 +670,7 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
           Möbius archive
         </div>
 
-        <div className="mt-4 flex items-center justify-center gap-1.5" aria-label={`Artwork ${activeIndex + 1} of ${count}`}>
+        <div className="mt-4 flex items-center justify-center gap-1.5" aria-hidden="true">
           {dotIndices.map((index) => (
             <span
               key={index}
@@ -785,7 +780,11 @@ function HomePage({ onSelect }) {
     <section className="relative min-h-svh overflow-x-clip md:min-h-[max(100svh,680px)]" aria-label="Möbius artwork gallery">
       {isMobile && <ArcCarousel artworks={artworks} onSelect={onSelect} navigate={navigate} />}
       {!isMobile && !use3D && <DesktopGalleryPreview onSelect={onSelect} />}
-      {use3D && !ready && <p className="desktop-gallery-loading" role="status">Loading the archive</p>}
+      {use3D && !ready && (
+        <div className="desktop-gallery-loading" role="status" aria-label="Loading gallery">
+          <MobiusMark animated />
+        </div>
+      )}
 
       {use3D && (
         <div
@@ -822,7 +821,7 @@ function HomePage({ onSelect }) {
       {ready && (
         <>
           <div className="pointer-events-none absolute left-1/2 top-[55%] -translate-x-1/2 text-center">
-            <div className="flex items-center gap-1.5" aria-label={`Artwork ${activeIndex + 1} of ${artworks.length}`}>
+            <div className="flex items-center gap-1.5" aria-hidden="true">
               {artworks.map((art, index) => (
                 <span key={art.title} className={`h-1 rounded-full transition-all ${index === activeIndex ? "w-7 bg-sky-100/80" : "w-1.5 bg-sky-100/22"}`} />
               ))}
@@ -857,18 +856,6 @@ function WorkPage({ onSelect }) {
   );
 }
 
-function ArchiveCollage({ pieces, onSelect }) {
-  return (
-    <div className="archive-collage">
-      {pieces.map((piece) => (
-        <button key={piece.title} type="button" onClick={() => onSelect(piece)} aria-label={`View ${piece.title}`}>
-          <img src={piece.thumbnail} alt="" decoding="async" />
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function AboutArtwork({ title, onSelect, className }) {
   const art = artworksByTitle.get(title);
 
@@ -887,9 +874,8 @@ function AboutPage({ onSelect }) {
         <p className="about-label">About · Dion Nikila</p>
         <div className="about-composition">
           <h1 className="about-headline">
-            <span>Drawn</span>
-            <span>by hand.</span>
-            <span>Housed in a loop.</span>
+            <span>Don't be</span>{" "}
+            <span>a stranger.</span>
           </h1>
           <AboutArtwork title="decay" className="about-art-decay" onSelect={onSelect} />
           <AboutArtwork title="toph" className="about-art-toph" onSelect={onSelect} />
@@ -897,27 +883,54 @@ function AboutPage({ onSelect }) {
           <AboutArtwork title="stone free" className="about-art-stone" onSelect={onSelect} />
         </div>
 
-        <div className="about-notes">
-          <section>
-            <h2>What I look for</h2>
-            <p>I’m Dion Nikila, an illustrator based in Sri Lanka. I’m drawn to characters you can recognize from a silhouette or a single gesture. Sometimes the angle of a shoulder or the space between an arm and the torso is enough. I work in acrylic on canvas and in watercolor and fineliner in my sketchbooks.</p>
-          </section>
-          <section>
-            <h2>Why the gallery loops</h2>
-            <p>I built the archive on a Möbius strip so there’d be no obvious first or last drawing. Follow one of the off-center lights. It comes back on the opposite side after one lap and takes a second lap to return to where it started.</p>
-          </section>
-          <section>
-            <h2>Working together</h2>
-            <p>I make portraits, original character art, covers, and posters. If you have a rough idea, tell me where it will appear and what you want someone to notice first. A drawing from the archive, a reference, or a deadline can help us get started.</p>
-          </section>
-        </div>
-        <div className="about-links">
-          <a href="#/work">Browse the archive</a>
-          <a href={commissionLink()}>Get a quote</a>
-          <a href={INSTAGRAM_URL}>@thechinese.satellite</a>
+        <div className="about-essay">
+          <p className="about-intro">I’m Dion Nikila, an illustrator based in Sri Lanka.</p>
+          <p>I’m drawn to characters you can recognize from the angle of a shoulder or the space between an arm and the torso. I work in acrylic on canvas and in watercolor and fineliner in my sketchbooks.</p>
+          <p>I built the archive on a Möbius strip so there’d be no obvious first or last drawing. Follow an off-center light for one lap and it comes back on the opposite side. The second lap brings it home.</p>
+          <p>I make portraits, original character art, covers, and posters. If you have something in mind, <a href="#/contact">send me a note</a> about what it’s for and what you want someone to notice first.</p>
         </div>
       </div>
     </section>
+  );
+}
+
+// Trace the single edge through two turns of a projected Möbius strip.
+const markEdge = Array.from({ length: 129 }, (_, index) => {
+  const u = index / 128 * TAU * 2;
+  const radius = 45 + 10 * Math.cos(u / 2);
+  const x = 66 + radius * Math.cos(u);
+  const y = 35 + radius * Math.sin(u) * .35 - 10 * Math.sin(u / 2) + (x - 66) * .1;
+  return `${index === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
+}).join(" ");
+
+function MobiusMark({ animated = false }) {
+  return (
+    <svg className="mobius-mark" viewBox="0 0 132 70" fill="none" aria-hidden="true">
+      <path d={markEdge} className="mobius-edge" pathLength="100" />
+      {animated && <path d={markEdge} className="mobius-trace" pathLength="100" />}
+    </svg>
+  );
+}
+
+function SiteFooter() {
+  return (
+    <footer className="site-footer">
+      <div className="footer-inner">
+        <div className="footer-top">
+          <a href="#/" className="footer-wordmark">The Chinese<br />Satellite Archive</a>
+          <MobiusMark />
+        </div>
+        <div className="footer-bottom">
+          <p>© {new Date().getFullYear()} Dion Nikila · Sri Lanka</p>
+          <nav aria-label="Contact and socials">
+            <a href={INSTAGRAM_URL}>Instagram</a>
+            <a href={WHATSAPP_URL}>WhatsApp</a>
+            <a href={`mailto:${CONTACT_EMAIL}`}>Email</a>
+            <a href={`tel:+${WHATSAPP_NUMBER}`}>+94 76 770 2100</a>
+          </nav>
+        </div>
+      </div>
+    </footer>
   );
 }
 
@@ -925,7 +938,6 @@ export default function MobiusPortfolio() {
   const [location, setLocation] = useState(readLocation);
   const [modalArt, setModalArt] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const formRef = useRef(null);
   const activeRoute = routes.find((item) => item.path === location.path) ?? routes[0];
   const inquiryArt = artworks.find((art) => art.title === location.reference);
 
@@ -1042,7 +1054,7 @@ export default function MobiusPortfolio() {
         )}
       </AnimatePresence>
 
-      <main className="relative min-h-screen">
+      <main className="relative">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.isContact ? "/contact" : activeRoute.path}
@@ -1057,11 +1069,13 @@ export default function MobiusPortfolio() {
             {activeRoute.path === "/work" && <WorkPage onSelect={setModalArt} />}
             {activeRoute.path === "/about" && <AboutPage onSelect={setModalArt} />}
             {activeRoute.path === "/commissions" && (
-              <CommissionPage type={location.type} artwork={inquiryArt} formRef={formRef} isContact={location.isContact} postcardArt={artworksByTitle.get("the bird of hermes")} visual={<ArchiveCollage pieces={[artworks[0], artworks[5], artworks[9]]} onSelect={setModalArt} />} />
+              <CommissionPage type={location.type} artwork={inquiryArt} isContact={location.isContact} postcardArt={artworksByTitle.get("the bird of hermes")} />
             )}
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {activeRoute.path !== "/" && <SiteFooter />}
 
       <ArtworkModal
         art={modalArt}
