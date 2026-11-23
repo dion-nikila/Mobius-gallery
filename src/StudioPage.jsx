@@ -5,6 +5,32 @@ import { prepareImages } from "./studioImages.js";
 import "./studio.css";
 
 const tokenSettings = "https://github.com/settings/personal-access-tokens/new";
+const visibilityFilters = { all: "All", visible: "Visible", hidden: "Hidden" };
+
+function artworkTitle(artwork) {
+  return artwork.title.trim() || "Untitled artwork";
+}
+
+function catalogueChanges(artworks, published, uploads) {
+  const previous = new Map(published.map((artwork) => [artwork.id, artwork]));
+  const entries = [];
+  for (const artwork of artworks) {
+    const original = previous.get(artwork.id);
+    const actions = [];
+    if (!original) {
+      actions.push(artwork.visible ? "Add to gallery" : "Add as hidden");
+    } else {
+      const { visible, ...details } = artwork;
+      const { visible: wasVisible, ...originalDetails } = original;
+      if (visible !== wasVisible) actions.push(visible ? "Show in gallery" : "Hide from gallery");
+      if (JSON.stringify(details) !== JSON.stringify(originalDetails) || uploads[artwork.id]) actions.push("Update artwork");
+    }
+    if (actions.length) entries.push({ artwork, actions });
+  }
+  const orderChanged = artworks.filter((artwork) => previous.has(artwork.id))
+    .some((artwork, index) => artwork.id !== published[index]?.id);
+  return { entries, orderChanged };
+}
 
 function fileSize(bytes) {
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -52,12 +78,12 @@ function StudioLogin({ onConnect, busy, error, authEnabled }) {
   );
 }
 
-function ArtworkEditor({ artwork, preview, upload, blocked, preparing, onChange, onUpload, onDiscard, onMove, canMoveUp, canMoveDown }) {
+function ArtworkEditor({ artwork, preview, upload, blocked, preparing, onChange, onUpload, onDiscard, onMove, onVisibility, canHide, canMoveUp, canMoveDown, headingRef }) {
   return (
-    <section className="studio-panel studio-editor" aria-label="Edit artwork">
+    <section className="studio-panel studio-editor" aria-labelledby="studio-edit-title">
       <div className="studio-editor-heading">
-        <h2>{artwork.title || "New artwork"}</h2>
-        {!artwork.visible && <span>Hidden</span>}
+        <h2 id="studio-edit-title" ref={headingRef} tabIndex={-1}>{artworkTitle(artwork)}</h2>
+        <span className="studio-visibility" data-visible={artwork.visible}>{artwork.visible ? "Visible" : "Hidden"}</span>
       </div>
       <div className="studio-editor-layout">
         <div>
@@ -107,16 +133,25 @@ function ArtworkEditor({ artwork, preview, upload, blocked, preparing, onChange,
             <input value={artwork.alt ?? ""} maxLength={200} placeholder="Describe the image for screen readers"
               onChange={(event) => onChange({ alt: event.target.value })} />
           </label>
-          <div className="studio-checks">
-            <label><input type="checkbox" checked={artwork.visible}
-              onChange={(event) => onChange({ visible: event.target.checked })} /> Show in gallery</label>
-            <label><input type="checkbox" checked={artwork.featured}
-              onChange={(event) => onChange({ featured: event.target.checked })} /> Feature on About</label>
-          </div>
-          <div className="studio-editor-actions">
-            <button type="button" className="studio-secondary" disabled={!canMoveUp} onClick={() => onMove(-1)}>Move earlier</button>
-            <button type="button" className="studio-secondary" disabled={!canMoveDown} onClick={() => onMove(1)}>Move later</button>
-            {onDiscard && <button type="button" className="studio-secondary" onClick={onDiscard}>Discard new piece</button>}
+          <div className="studio-presentation">
+            <h3>Display on the site</h3>
+            <div className="studio-editor-actions">
+              <button type="button" className="studio-secondary" onClick={onVisibility} disabled={artwork.visible && !canHide}>
+                {artwork.visible ? "Hide from gallery" : "Show in gallery"}
+              </button>
+              <label className="studio-feature">
+                <input type="checkbox" checked={artwork.featured} onChange={(event) => onChange({ featured: event.target.checked })} /> Feature on About
+              </label>
+            </div>
+            <p className="studio-help">{artwork.visible && !canHide
+              ? "Keep at least one artwork visible in the gallery."
+              : "Hide removes this piece from the public gallery and About after you publish."}</p>
+            <div className="studio-editor-actions">
+              <button type="button" className="studio-secondary" disabled={!canMoveUp} onClick={() => onMove(0, true)}>Move to top</button>
+              <button type="button" className="studio-secondary" disabled={!canMoveUp} onClick={() => onMove(-1)}>Move earlier</button>
+              <button type="button" className="studio-secondary" disabled={!canMoveDown} onClick={() => onMove(1)}>Move later</button>
+              {onDiscard && <button type="button" className="studio-secondary" onClick={onDiscard}>Discard new piece</button>}
+            </div>
           </div>
         </fieldset>
       </div>
@@ -133,6 +168,7 @@ export default function StudioPage() {
   const [search, setSearch] = useState("");
   const [show, setShow] = useState("all");
   const [busy, setBusy] = useState("");
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [error, setError] = useState(() => {
     const code = new URLSearchParams(window.location.hash.split("?")[1]).get("auth");
@@ -142,10 +178,23 @@ export default function StudioPage() {
   });
   const [deployment, setDeployment] = useState(null);
   const action = useRef(false);
+  const editorHeading = useRef(null);
+  const openEditor = useRef(false);
+  const reviewButton = useRef(null);
   const selectedIndex = artworks.findIndex((artwork) => artwork.id === selection);
   const selected = artworks[selectedIndex];
-  const changed = session && (JSON.stringify(artworks) !== JSON.stringify(session.snapshot.artworks) || Object.keys(uploads).length > 0);
+  const { entries, orderChanged } = catalogueChanges(artworks, session?.snapshot.artworks ?? [], uploads);
+  const changed = entries.length > 0 || orderChanged;
+  const visibleCount = artworks.filter((artwork) => artwork.visible).length;
+  const counts = { all: artworks.length, visible: visibleCount, hidden: artworks.length - visibleCount };
+  const missingDetails = entries.map(({ artwork }) => artwork).filter((artwork) => !artwork.title.trim() || !artwork.image);
   const blocked = Boolean(busy) || imageLoading || authEnabled === null;
+
+  useEffect(() => {
+    if (!openEditor.current || !editorHeading.current) return;
+    openEditor.current = false;
+    editorHeading.current.focus();
+  }, [selection]);
 
   useEffect(() => {
     if (!changed && !busy && !imageLoading) return;
@@ -186,6 +235,7 @@ export default function StudioPage() {
     setArtworks(snapshot.artworks);
     setSelection(snapshot.artworks[0]?.id ?? "");
     setUploads({});
+    setReviewOpen(false);
   }, []);
 
   useEffect(() => {
@@ -249,6 +299,7 @@ export default function StudioPage() {
     setUploads({});
     setSearch("");
     setShow("all");
+    setReviewOpen(false);
     setDeployment(null);
     setError("");
     if (archive) window.location.hash = "#/";
@@ -260,13 +311,27 @@ export default function StudioPage() {
       id, title: "", image: "", thumbnail: "", year: "", medium: "",
       visible: true, featured: false, availability: "inquire",
     }, ...current]);
-    setSelection(id);
+    editArtwork(id);
     setSearch("");
     setShow("all");
   }
 
   function update(id, fields) {
     setArtworks((current) => current.map((artwork) => artwork.id === id ? { ...artwork, ...fields } : artwork));
+  }
+
+  function editArtwork(id) {
+    if (id === selection) {
+      editorHeading.current?.focus();
+      return;
+    }
+    openEditor.current = true;
+    setSelection(id);
+  }
+
+  function toggleVisibility(artwork) {
+    if (blocked || (artwork.visible && visibleCount <= 1)) return;
+    update(artwork.id, { visible: !artwork.visible });
   }
 
   async function upload(file) {
@@ -288,13 +353,13 @@ export default function StudioPage() {
     }
   }
 
-  function move(direction) {
+  function move(direction, toTop = false) {
     setArtworks((current) => {
       const from = current.findIndex((item) => item.id === selection);
-      const to = from + direction;
+      const to = toTop ? 0 : from + direction;
       if (from < 0 || to < 0 || to >= current.length) return current;
       const next = [...current];
-      [next[to], next[from]] = [next[from], next[to]];
+      next.splice(to, 0, ...next.splice(from, 1));
       return next;
     });
   }
@@ -321,7 +386,7 @@ export default function StudioPage() {
   }
 
   async function publish() {
-    if (!changed || blocked || action.current) return;
+    if (!changed || missingDetails.length || !visibleCount || blocked || action.current) return;
     action.current = true;
     setError("");
     setBusy("Checking the catalogue…");
@@ -331,6 +396,7 @@ export default function StudioPage() {
       setSession({ token: session.token, snapshot });
       setArtworks(snapshot.artworks);
       setUploads({});
+      setReviewOpen(false);
       setDeployment({ sha: snapshot.head, state: "pending" });
     } catch (err) {
       setError(err.message);
@@ -340,9 +406,16 @@ export default function StudioPage() {
     }
   }
 
-  function previewFor(artwork) {
-    return uploads[artwork.id]?.preview || (artwork.thumbnail && thumbnailUrl(session.snapshot.head, artwork.thumbnail));
+  function previewFor(artwork, fullSize = false) {
+    const path = fullSize ? artwork.image : artwork.thumbnail;
+    return uploads[artwork.id]?.preview || (path && thumbnailUrl(session.snapshot.head, path));
   }
+
+  const query = search.trim().toLowerCase();
+  const results = artworks.filter((artwork) => {
+    const match = `${artworkTitle(artwork)} ${artwork.year ?? ""} ${artwork.medium ?? ""}`.toLowerCase().includes(query);
+    return match && (show === "all" || artwork.visible === (show === "visible"));
+  });
 
   const releaseMessage = {
     pending: "Saved to GitHub. Waiting for Vercel.",
@@ -367,10 +440,11 @@ export default function StudioPage() {
         ) : (
           <>
             <div className="studio-title">
-              <div><h1>Artwork studio</h1><p>{artworks.filter((item) => item.visible).length} visible · {artworks.filter((item) => !item.visible).length} hidden</p></div>
+              <div><h1>Artwork studio</h1><p>Manage the artwork shown in your archive.</p></div>
               <div className="studio-title-actions">
                 <button className="studio-secondary" type="button" onClick={createArtwork} disabled={blocked}>Add artwork</button>
-                <button className="studio-primary" type="button" onClick={publish} disabled={!changed || blocked}>Publish changes</button>
+                <button className="studio-primary" type="button" ref={reviewButton} aria-expanded={reviewOpen && changed}
+                  onClick={() => setReviewOpen(!reviewOpen || !changed)} disabled={!changed || blocked}>Review changes</button>
               </div>
             </div>
             <div className="studio-status" aria-live="polite">
@@ -380,36 +454,74 @@ export default function StudioPage() {
               )}
             </div>
             {error && <p className="studio-error" role="alert">{error}</p>}
+            {reviewOpen && changed && (
+              <section className="studio-panel studio-review" aria-labelledby="studio-review-title">
+                <h2 id="studio-review-title">Review changes</h2>
+                <p>Changes appear on the site after publishing and deployment.</p>
+                <ul>
+                  {entries.map(({ artwork, actions }) => (
+                    <li key={artwork.id}><strong>{artworkTitle(artwork)}</strong><span>{actions.join(" · ")}</span></li>
+                  ))}
+                  {orderChanged && <li>Gallery order changed</li>}
+                </ul>
+                {missingDetails.length > 0 && (
+                  <div className="studio-review-missing">
+                    <p>Add a title and image to finish these pieces.</p>
+                    {missingDetails.map((artwork) => (
+                      <button className="studio-secondary" type="button" key={artwork.id} disabled={blocked}
+                        onClick={() => editArtwork(artwork.id)}>Edit {artworkTitle(artwork)}</button>
+                    ))}
+                  </div>
+                )}
+                {!visibleCount && <p className="studio-error">Show at least one artwork in the gallery before publishing.</p>}
+                <div className="studio-editor-actions">
+                  <button className="studio-primary" type="button" onClick={publish} disabled={blocked || missingDetails.length > 0 || !visibleCount}>Publish changes</button>
+                  <button className="studio-secondary" type="button" onClick={() => { setReviewOpen(false); reviewButton.current?.focus(); }}>Keep editing</button>
+                </div>
+              </section>
+            )}
             <div className="studio-workspace">
               <section className="studio-panel studio-library" aria-label="Artwork catalogue">
+                <h2>Catalogue</h2>
                 <label className="studio-field">Search artwork<input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Title, year, or medium" /></label>
-                <label className="studio-field">Visibility
-                  <select value={show} onChange={(event) => setShow(event.target.value)}>
-                    <option value="all">All artwork</option>
-                    <option value="visible">Visible only</option>
-                    <option value="hidden">Hidden only</option>
-                  </select>
-                </label>
-                <div className="studio-list">
-                  {artworks.filter((artwork) => {
-                    const match = `${artwork.title} ${artwork.year ?? ""} ${artwork.medium ?? ""}`.toLowerCase().includes(search.trim().toLowerCase());
-                    return match && (show === "all" || artwork.visible === (show === "visible"));
-                  }).map((artwork) => (
-                    <button type="button" className="studio-item" key={artwork.id} aria-pressed={selection === artwork.id}
-                      onClick={() => setSelection(artwork.id)} disabled={blocked}>
-                      {previewFor(artwork) ? <img src={previewFor(artwork)} alt="" loading="lazy" /> : <span className="studio-empty-thumbnail" />}
-                      <span><strong>{artwork.title || "Untitled artwork"}</strong><small>{artwork.visible ? "Visible" : "Hidden"}{artwork.featured ? " · About" : ""}</small></span>
+                <div className="studio-filters" role="group" aria-label="Filter by visibility">
+                  {Object.entries(visibilityFilters).map(([value, label]) => (
+                    <button type="button" key={value} aria-pressed={show === value} onClick={() => setShow(value)}>
+                      {label} <span>{counts[value]}</span>
                     </button>
                   ))}
                 </div>
+                <div className="studio-list">
+                  {!results.length && <p className="studio-help">{query ? "No artwork matches your search." : `No ${visibilityFilters[show].toLowerCase()} artwork.`}</p>}
+                  {results.map((artwork) => (
+                    <div className="studio-item-row" key={artwork.id}>
+                      <button type="button" className="studio-item" aria-pressed={selection === artwork.id}
+                        onClick={() => editArtwork(artwork.id)} disabled={blocked}>
+                        {previewFor(artwork) ? <img src={previewFor(artwork)} alt="" loading="lazy" /> : <span className="studio-empty-thumbnail" />}
+                        <span>
+                          <strong>{artworkTitle(artwork)}</strong>
+                          <small className="studio-visibility" data-visible={artwork.visible}>{artwork.visible ? "Visible" : "Hidden"}{artwork.featured && artwork.visible ? " · About" : ""}</small>
+                        </span>
+                      </button>
+                      <button className="studio-quick-action" type="button" onClick={() => toggleVisibility(artwork)}
+                        aria-label={`${artwork.visible ? "Hide" : "Show"} ${artworkTitle(artwork)}`}
+                        disabled={blocked || (artwork.visible && visibleCount <= 1)}>{artwork.visible ? "Hide" : "Show"}</button>
+                    </div>
+                  ))}
+                </div>
+                <p className="studio-help" aria-live="polite">{results.length} of {artworks.length} shown</p>
               </section>
-              {selected && <ArtworkEditor artwork={selected} preview={previewFor(selected)} upload={uploads[selected.id]}
+              {selected && <ArtworkEditor artwork={selected} preview={previewFor(selected, true)} upload={uploads[selected.id]}
                 blocked={blocked} preparing={imageLoading}
                 onChange={(fields) => update(selected.id, fields)} onUpload={upload} onMove={move}
+                onVisibility={() => toggleVisibility(selected)} canHide={visibleCount > 1} headingRef={editorHeading}
                 canMoveUp={selectedIndex > 0} canMoveDown={selectedIndex < artworks.length - 1}
                 onDiscard={session.snapshot.artworks.some((item) => item.id === selected.id) ? undefined : discardNew} />}
             </div>
-            <p className="studio-help">The landing gallery uses the first 16 visible pieces. About uses up to four featured pieces in catalogue order. Hidden pieces stay in the public repository. Keep private work on your device.</p>
+            <details className="studio-display-help">
+              <summary>How artwork appears on the site</summary>
+              <p className="studio-help">The landing gallery shows the first 16 visible pieces. About gives priority to the first four visible pieces marked Feature on About. Hidden pieces stay in Studio and their image files stay in the public repository.</p>
+            </details>
           </>
         )}
       </div>

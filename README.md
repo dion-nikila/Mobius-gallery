@@ -27,8 +27,8 @@ For existing pieces, confirm availability, format, rights, shipping, and price i
 Open [Studio](https://chinesesatellite.art/#/studio) and choose **Sign in with GitHub**. Use the repository owner’s `dion-nikila` account. Studio maintains a time-limited session in a secure, encrypted cookie. The **Use a GitHub token instead** section remains available while sign-in is being configured.
 
 1. Choose **Add artwork**, attach a JPG, PNG, WebP, or AVIF, and enter a title. Optionally add year, medium, availability, a viewer note, and an image description.
-2. Use **Move earlier** and **Move later** to set the gallery order. The landing gallery uses the first 16 visible pieces, and the archive lists them all. About uses up to four featured pieces in that order. **Show in gallery** controls public visibility.
-3. Review the image preview, then use **Publish changes** to send the entire batch to GitHub. Studio shows the Vercel deployment status and links to the commit. Draft changes last while Studio stays open.
+2. Use **Hide** or **Show** next to a piece in the catalogue to control its visibility across the site. The **Hidden** filter lists pieces you can restore. Use **Move to top**, **Move earlier**, and **Move later** to set the gallery order. The landing gallery uses the first 16 visible pieces, and About gives priority to the first four visible pieces marked **Feature on About**.
+3. Select **Review changes** to see which pieces will be added, updated, hidden, or restored. Then choose **Publish changes** to send the batch to GitHub. Studio shows the Vercel deployment status and links to the commit. Draft changes last while Studio stays open.
 
 Uploads are resized to a web image and a thumbnail. Keep your full-resolution masters separately. Hiding a piece removes it from the site’s catalogue while its files remain in the public repository. Git history keeps previous images and details. To undo a release, revert its commit in Git or roll back the Vercel deployment. When two sessions change the catalogue, the second one must reload and review the updated artwork before publishing.
 
