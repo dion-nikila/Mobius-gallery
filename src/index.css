@@ -215,7 +215,7 @@ form[tabindex] {
 
 .about-page {
   background:
-    radial-gradient(ellipse at 74% 14%, #162b3c 0, transparent 57%),
+    radial-gradient(ellipse at 76% 10%, #122537 0, transparent 54%),
     #050911;
   color: #edf5fb;
   padding: clamp(6.6rem, 13vw, 9rem) clamp(1.25rem, 6vw, 6rem) clamp(3.5rem, 8vw, 7rem);
@@ -225,9 +225,9 @@ form[tabindex] {
 .about-composition {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-template-rows: repeat(2, clamp(110px, 20vw, 236px));
-  gap: clamp(.45rem, 1.8vw, 1.4rem);
-  margin-block: 1.6rem clamp(2.5rem, 7vw, 5rem);
+  grid-template-rows: repeat(2, clamp(92px, 18vw, 216px));
+  gap: clamp(.45rem, 1.55vw, 1.25rem);
+  margin-block: 1.4rem clamp(2.15rem, 5vw, 4rem);
   isolation: isolate;
 }
 .about-headline {
@@ -237,24 +237,24 @@ form[tabindex] {
   grid-template-rows: subgrid;
   align-items: center;
   font-size: clamp(1.85rem, 7.6vw, 7rem);
-  font-weight: 680;
+  font-weight: 625;
   letter-spacing: -.065em;
   word-spacing: .08em;
   line-height: .94;
   pointer-events: none;
 }
 .about-headline span:nth-child(1) { grid-area: 1 / 1 / 2 / 8; }
-.about-headline span:nth-child(2) { grid-area: 2 / 7 / 3 / 13; }
+.about-headline span:nth-child(2) { grid-area: 2 / 7 / 3 / 13; color: #c9e3f5; }
 .about-art {
   position: relative;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
   background: #0b1621;
-  border: 1px solid #a3c6db50;
+  border: 1px solid #a3c6db40;
 }
 .about-art img { height: 100%; width: 100%; object-fit: cover; transition: transform .3s ease; }
-.about-art:hover img { transform: scale(1.04); }
+.about-art:is(:hover, :focus-visible) img { transform: scale(1.04); }
 .about-art span {
   position: absolute;
   inset-inline: 0;
@@ -269,89 +269,145 @@ form[tabindex] {
 }
 .about-art:is(:hover, :focus-visible) span { transform: translateY(0); }
 .about-art-decay { grid-area: 1 / 8 / 2 / 11; }
-.about-art-toph { grid-area: 1 / 11 / 2 / 13; }
-.about-art-hermes { grid-area: 2 / 1 / 3 / 4; }
-.about-art-stone { grid-area: 2 / 4 / 3 / 7; }
+.about-art-decay img { object-position: 50% 42%; }
+.about-art-toph { grid-area: 1 / 11 / 2 / 13; margin-block: 13% 0; }
+.about-art-hermes { grid-area: 2 / 1 / 3 / 5; }
+.about-art-stone { grid-area: 2 / 5 / 3 / 7; margin-block: 0 13%; }
 .about-essay {
-  max-width: 40rem;
-  margin-inline: auto;
-  padding-inline-start: clamp(1rem, 3vw, 2rem);
-  border-inline-start: 1px solid #7dd3fc80;
-  color: #c5d7e3;
-  font-size: clamp(1rem, 2vw, 1.17rem);
-  line-height: 1.7;
+  display: grid;
+  gap: 1rem clamp(1.5rem, 5vw, 5rem);
+  padding-top: 1.4rem;
+  border-top: 1px solid #7dd3fc45;
 }
-.about-essay p + p { margin-top: .95rem; }
-.about-essay .about-intro { color: #edf5fb; font-size: clamp(1.35rem, 3vw, 2.1rem); font-weight: 600; line-height: 1.18; letter-spacing: -.04em; }
-.about-essay a { color: #b8e4ff; text-decoration: underline; text-underline-offset: .25em; }
+.about-intro {
+  color: #edf5fb;
+  font-size: clamp(1.45rem, 3.5vw, 2.55rem);
+  font-weight: 590;
+  line-height: 1.12;
+  letter-spacing: -.045em;
+}
+.about-copy {
+  max-width: 36rem;
+  color: #c5d7e3;
+  font-size: clamp(1rem, 1.5vw, 1.1rem);
+  line-height: 1.75;
+}
+.about-copy p + p { margin-top: .85rem; }
+.about-copy a { color: #b8e4ff; text-decoration: underline; text-underline-offset: .25em; }
+@media (min-width: 48rem) {
+  .about-essay { grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); }
+}
 
 .contact-page {
-  padding: clamp(6.75rem, 14vw, 10rem) clamp(1.25rem, 6vw, 6rem) clamp(3.5rem, 8vw, 7rem);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(6.6rem, 12vw, 9rem) clamp(1.25rem, 6vw, 5rem) clamp(3rem, 7vw, 5rem);
   background:
-    radial-gradient(ellipse at 18% 40%, #112b41 0, transparent 58%),
+    radial-gradient(ellipse at 77% 0%, #14273d 0, transparent 54%),
     #050911;
 }
-.contact-letter {
-  display: grid;
-  gap: clamp(1.8rem, 6vw, 5rem);
-  max-width: 66rem;
-  margin-inline: auto;
-}
-.contact-address { position: relative; min-width: 0; }
-.contact-address h1 {
-  max-width: 11ch;
-  font-size: clamp(2.55rem, 7vw, 6.3rem);
-  font-weight: 660;
-  line-height: .96;
-  letter-spacing: -.065em;
-  word-spacing: .08em;
-}
-.contact-postage {
-  position: relative;
-  width: fit-content;
-  margin-top: 1.9rem;
-  transform: rotate(-7deg);
-}
-.contact-postage img {
-  width: 4.5rem;
-  height: 5.3rem;
-  padding: 4px;
-  object-fit: cover;
-  border: 1px dashed #b9dff9b8;
-  background: #10253a;
-}
-.contact-postmark {
+.contact-page::before {
+  content: "";
   position: absolute;
-  display: grid;
-  place-items: center;
-  width: 5.3rem;
-  aspect-ratio: 1;
-  bottom: -.6rem;
-  left: 3.3rem;
-  transform: rotate(19deg);
-  border: 3px double #7dd3fc70;
-  border-radius: 50%;
-  color: #acdfff;
-  font: 550 .65rem/1 ui-monospace, monospace;
-  text-transform: uppercase;
-  letter-spacing: .12em;
+  inset: 0;
+  z-index: -1;
+  opacity: .48;
+  mask-image: linear-gradient(black, transparent 78%);
+  background:
+    radial-gradient(circle at 27px 45px, #bfdfff 0 1px, transparent 1.5px) 0 0 / 179px 143px,
+    radial-gradient(circle at 98px 19px, #9bcaff 0 .8px, transparent 1.3px) 0 0 / 151px 107px,
+    radial-gradient(circle at 44px 11px, #a1c6ee 0 .6px, transparent 1.2px) 0 0 / 157px 183px;
 }
-.postcard-form { min-width: 0; border-top: 1px solid #7dd3fc70; padding-top: 1.2rem; }
-.postcard-form fieldset > label:first-of-type { margin-top: 0; }
-.postcard-form :is(input, textarea) {
+.contact-notebook { max-width: 49rem; margin-inline: auto; }
+.contact-heading {
+  position: relative;
+  isolation: isolate;
+  padding-bottom: clamp(1.1rem, 3vw, 2rem);
+}
+.contact-heading h1 {
+  max-width: 16ch;
+  font-size: clamp(2.05rem, 6.3vw, 4.6rem);
+  font-weight: 620;
+  line-height: 1.01;
+  letter-spacing: -.059em;
+  word-spacing: .065em;
+  text-wrap: balance;
+}
+.contact-orbit {
+  position: absolute;
+  z-index: -1;
+  top: -1rem;
+  right: -.8rem;
+  width: clamp(8rem, 31vw, 19rem);
+  aspect-ratio: 1.36;
+  opacity: .8;
+  pointer-events: none;
+}
+.contact-orbit::before,
+.contact-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 28% 0;
+  border: 1px solid #9cd4fc53;
+  border-radius: 50%;
+  transform: rotate(-22deg);
+}
+.contact-orbit::after { inset: 19% 10%; border-color: #9cd4fc26; transform: rotate(37deg); }
+.contact-planet {
+  position: absolute;
+  inset: 18% 29%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 33% 28%, #6c9dbf45, #152c46 46%, #07111f 74%);
+  box-shadow: -4px -4px 22px #8ecfff28, inset 1px 1px #a9dafb55;
+}
+.contact-glint {
+  position: absolute;
+  z-index: 1;
+  top: 30%;
+  right: 10%;
+  width: 4px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #dcf3ff;
+  box-shadow: 0 0 9px 3px #7dc8ff8c;
+}
+.notebook-form {
+  --notebook-inset: clamp(.85rem, 3.3vw, 1.65rem);
+  min-width: 0;
+  border-top: 1px solid #9bc8e866;
+  border-left: 1px solid #8cb6db43;
+  padding: 1.2rem 0 0 var(--notebook-inset);
+  background: linear-gradient(100deg, #0c19289c, transparent 72%);
+}
+.notebook-form fieldset > label:first-of-type { margin-top: 0; }
+.notebook-form label { font-weight: 500; color: #c2d7e7; }
+.notebook-form :is(input, textarea) {
   border: 0;
   border-radius: 0;
-  border-bottom: 1px solid #94b9d260;
-  background: #0e1d2a55;
+  background-color: transparent;
+  padding-inline: 0;
 }
-.postcard-form textarea {
-  line-height: 1.7;
-  background: repeating-linear-gradient(transparent 0 calc(1.7em - 1px), #94b9d232 calc(1.7em - 1px) 1.7em);
+.notebook-form input { border-bottom: 1px solid #91b4d35c; }
+.notebook-form textarea {
+  line-height: 2;
+  background-image: repeating-linear-gradient(transparent 0 calc(2em - 1px), #91b4d348 calc(2em - 1px) 2em);
+  background-attachment: local;
   background-origin: content-box;
+  background-clip: content-box;
 }
-@media (min-width: 48rem) {
-  .contact-letter { grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); align-items: center; }
-  .postcard-form { border-top: 0; border-left: 1px solid #7dd3fc65; padding-top: 0; padding-inline-start: clamp(1.5rem, 4vw, 3rem); }
+.notebook-form button[type="submit"] {
+  width: auto;
+  min-height: 44px;
+  border: 1px solid #9cd6fd80;
+  border-radius: 4px;
+  background: #213e54;
+  color: #f2f8ff;
+}
+.notebook-form button[type="submit"]:hover { background: #2b536f; }
+@media (width < 36rem) {
+  .contact-orbit { opacity: .38; }
 }
 
 .quote-page { padding: clamp(6.75rem, 14vw, 9rem) 1.25rem clamp(3.5rem, 8vw, 6rem); }

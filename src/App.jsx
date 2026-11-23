@@ -884,10 +884,12 @@ function AboutPage({ onSelect }) {
         </div>
 
         <div className="about-essay">
-          <p className="about-intro">I’m Dion Nikila, an illustrator based in Sri Lanka.</p>
-          <p>I’m drawn to characters you can recognize from the angle of a shoulder or the space between an arm and the torso. I work in acrylic on canvas and in watercolor and fineliner in my sketchbooks.</p>
-          <p>I built the archive on a Möbius strip so there’d be no obvious first or last drawing. Follow an off-center light for one lap and it comes back on the opposite side. The second lap brings it home.</p>
-          <p>I make portraits, original character art, covers, and posters. If you have something in mind, <a href="#/contact">send me a note</a> about what it’s for and what you want someone to notice first.</p>
+          <p className="about-intro">I’m Dion Nikila.<br /> I draw characters.</p>
+          <div className="about-copy">
+            <p>I’m drawn to the details that make a pose recognizable, like the angle of a shoulder or the space between an arm and the torso. I work in acrylic on canvas and in watercolor and fineliner in my sketchbooks.</p>
+            <p>I built the gallery around a Möbius strip so the drawings have no obvious first or last. Follow one of the off-center lights. After one lap it’s on the opposite side of the strip, and the second lap brings it home.</p>
+            <p>I make portraits, character art, covers, and posters. If you have a piece in mind, <a href="#/contact">send me a note</a>.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -1069,7 +1071,7 @@ export default function MobiusPortfolio() {
             {activeRoute.path === "/work" && <WorkPage onSelect={setModalArt} />}
             {activeRoute.path === "/about" && <AboutPage onSelect={setModalArt} />}
             {activeRoute.path === "/commissions" && (
-              <CommissionPage type={location.type} artwork={inquiryArt} isContact={location.isContact} postcardArt={artworksByTitle.get("the bird of hermes")} />
+              <CommissionPage type={location.type} artwork={inquiryArt} isContact={location.isContact} />
             )}
           </motion.div>
         </AnimatePresence>

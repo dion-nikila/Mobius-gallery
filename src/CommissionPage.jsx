@@ -5,8 +5,8 @@ const field = "w-full min-w-0 rounded-lg border border-sky-100/20 bg-[#070f1a] p
 const label = "grid gap-2 text-sm font-medium text-sky-100/85";
 const button = "inline-flex min-h-12 items-center justify-center rounded-full bg-sky-50 px-6 text-sm font-semibold text-[#07111b] hover:bg-white disabled:cursor-wait disabled:opacity-60";
 
-function RequestForm({ type, artwork, onChoose, postcard = false }) {
-  const formClass = postcard ? "postcard-form" : "quote-form";
+function RequestForm({ type, artwork, onChoose, notebook = false }) {
+  const formClass = notebook ? "notebook-form" : "quote-form";
   const [submission, setSubmission] = useState(null);
   const sending = useRef(false);
   const context = `${type}:${artwork?.title ?? ""}`;
@@ -62,7 +62,7 @@ function RequestForm({ type, artwork, onChoose, postcard = false }) {
   return (
     <form onSubmit={submit} aria-busy={status === "sending"} className={formClass}>
       <fieldset disabled={status === "sending"} className="min-w-0">
-        {!postcard && <label className={`mt-4 ${label}`}>
+        {!notebook && <label className={`mt-4 ${label}`}>
           What are you looking for?
           <select name="type" value={type} onChange={(event) => onChoose(event.target.value, artwork?.title)} className={field}>
             {requestTypes.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
@@ -87,7 +87,7 @@ function RequestForm({ type, artwork, onChoose, postcard = false }) {
 
         <label className={`mt-4 ${label}`}>
           {isBuying ? "Anything I should know?" : isGeneral ? "Your message" : "What would you like me to make?"}
-          <textarea name="message" required={!(isBuying && artwork)} rows={postcard ? 4 : 3} maxLength={1200} className={`${field} resize-y`}
+          <textarea name="message" required={!(isBuying && artwork)} rows={notebook ? 5 : 3} maxLength={1200} className={`${field} resize-y`}
             onChange={(event) => event.target.setCustomValidity("")}
             placeholder={isBuying
               ? (artwork ? "For example, the size you want or where it would need to ship." : "Include the title or describe the piece you’re looking for.")
@@ -108,7 +108,7 @@ function RequestForm({ type, artwork, onChoose, postcard = false }) {
   );
 }
 
-export default function CommissionPage({ type, artwork, isContact, postcardArt }) {
+export default function CommissionPage({ type, artwork, isContact }) {
   const selected = requestTypes.some((item) => item.id === type) ? type : requestTypes[0].id;
   const isBuying = selected === "artwork";
 
@@ -120,15 +120,15 @@ export default function CommissionPage({ type, artwork, isContact, postcardArt }
   if (isContact) {
     return (
       <section className="contact-page">
-        <div className="contact-letter">
-          <header className="contact-address">
-            <h1>Send a note to<br className="hidden md:block" /> the Chinese Satellite</h1>
-            <figure className="contact-postage" aria-hidden="true">
-              <img src={postcardArt.thumbnail} alt="" />
-              <div className="contact-postmark"><span>Sri Lanka</span></div>
-            </figure>
+        <div className="contact-notebook">
+          <header className="contact-heading">
+            <div className="contact-orbit" aria-hidden="true">
+              <span className="contact-planet" />
+              <span className="contact-glint" />
+            </div>
+            <h1>Send a note to<br /> the Chinese Satellite</h1>
           </header>
-          <RequestForm type="general" postcard />
+          <RequestForm type="general" notebook />
         </div>
       </section>
     );
