@@ -122,18 +122,6 @@
       "availability": "inquire"
     },
     {
-      "id": "toph",
-      "title": "Toph",
-      "legacyTitle": "Toph",
-      "image": "art/Toph.jpg",
-      "thumbnail": "art/thumbnails/Toph.jpg",
-      "year": "2021",
-      "medium": "Acrylic on canvas, wooden frame",
-      "visible": true,
-      "featured": true,
-      "availability": "inquire"
-    },
-    {
       "id": "tusk",
       "title": "Tusk",
       "legacyTitle": "Tusk",
@@ -143,6 +131,18 @@
       "medium": "Watercolor and fineliner on sketchbook paper",
       "visible": true,
       "featured": false,
+      "availability": "inquire"
+    },
+    {
+      "id": "toph",
+      "title": "Toph",
+      "legacyTitle": "Toph",
+      "image": "art/Toph.jpg",
+      "thumbnail": "art/thumbnails/Toph.jpg",
+      "year": "2021",
+      "medium": "Acrylic on canvas, wooden frame",
+      "visible": true,
+      "featured": true,
       "availability": "inquire"
     }
   ]
