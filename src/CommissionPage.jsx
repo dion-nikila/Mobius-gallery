@@ -61,7 +61,7 @@ function RequestForm({ type, artwork, onChoose, isContact }) {
           {!isContact && (
             <label className="notebook-field">
               What are you looking for?
-              <select name="type" value={type} onChange={(event) => onChoose(event.target.value, artwork?.title)}>
+              <select name="type" value={type} onChange={(event) => onChoose(event.target.value, artwork?.id)}>
                 {requestTypes.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
               </select>
             </label>
@@ -111,6 +111,7 @@ function RequestForm({ type, artwork, onChoose, isContact }) {
 export default function CommissionPage({ type, artwork, isContact }) {
   const selected = isContact ? "general" : requestTypes.find((item) => item.id === type)?.id ?? requestTypes[0].id;
   const isBuying = selected === "artwork";
+  const referenceArtwork = isContact || (isBuying && artwork?.availability === "unavailable") ? undefined : artwork;
 
   function choose(offer, reference) {
     const link = commissionLink(offer, reference);
@@ -134,7 +135,7 @@ export default function CommissionPage({ type, artwork, isContact }) {
             </>
           )}
         </header>
-        <RequestForm type={selected} artwork={isContact ? undefined : artwork} onChoose={choose} isContact={isContact} />
+        <RequestForm type={selected} artwork={referenceArtwork} onChoose={choose} isContact={isContact} />
       </div>
     </section>
   );

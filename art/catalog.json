@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "artworks": [
+    {
+      "id": "decay",
+      "title": "Decay",
+      "legacyTitle": "Decay",
+      "image": "art/Decay.jpg",
+      "thumbnail": "art/thumbnails/Decay.jpg",
+      "year": "2021",
+      "medium": "Acrylic on canvas, wooden frame",
+      "visible": true,
+      "featured": true,
+      "availability": "inquire"
+    },
+    {
+      "id": "eight-handled-sword-divergent-sila-divine-general-mahoraga",
+      "title": "Eight-Handled Sword Divergent Sila Divine General Mahoraga",
+      "legacyTitle": "Eight Handled Sword Divergent Sila Divine General Mahoraga",
+      "image": "art/Eight-Handled Sword Divergent Sila Divine General Mahoraga.jpg",
+      "thumbnail": "art/thumbnails/Eight-Handled Sword Divergent Sila Divine General Mahoraga.jpg",
+      "year": "2025",
+      "medium": "Watercolor and fineliner on sketchbook paper",
+      "visible": true,
+      "featured": false,
+      "availability": "inquire"
+    },
+    {
+      "id": "explode",
+      "title": "Explode",
+      "legacyTitle": "Explode",
+      "image": "art/Explode.jpg",
+      "thumbnail": "art/thumbnails/Explode.jpg",
+      "year": "2022",
+      "medium": "Acrylic on canvas, wooden frame",
+      "visible": true,
+      "featured": false,
+      "availability": "inquire"
+    },
+    {
+      "id": "golden-experience",
+      "title": "Golden Experience",
+      "legacyTitle": "golden experience",
+      "image": "art/golden experience.jpg",
+      "thumbnail": "art/thumbnails/golden experience.jpg",
+      "year": "2025",
+      "medium": "Watercolor and fineliner on sketchbook paper",
+      "visible": true,
+      "featured": false,
+      "availability": "inquire"
+    },
+    {
+      "id": "hail-to-the-thief",
+      "title": "Hail to the Thief",
+      "legacyTitle": "Hail to the Thief",
+      "image": "art/Hail to the Thief.jpg",
+      "thumbnail": "art/thumbnails/Hail to the Thief.jpg",
+      "year": "2025",
+      "medium": "Watercolor and fineliner on sketchbook paper",
+      "visible": true,
+      "featured": false,
+      "availability": "inquire"
+    },
+    {
+      "id": "monkey-d-luffy",
+      "title": "Monkey D. Luffy",
+      "legacyTitle": "Monkey D. Luffy",
+      "image": "art/Monkey D. Luffy.jpg",
+      "thumbnail": "art/thumbnails/Monkey D. Luffy.jpg",
+      "year": "2025",
+      "medium": "Watercolor and fineliner on sketchbook paper",
+      "visible": true,
+      "featured": false,
+      "availability": "inquire"
+    },
+    {
+      "id": "stone-free",
+      "title": "Stone Free",
+      "legacyTitle": "Stone Free",
+      "image": "art/Stone Free.jpg",
+      "thumbnail": "art/thumbnails/Stone Free.jpg",
+      "year": "2026",
+      "medium": "Watercolor and fineliner on sketchbook paper",
+      "visible": true,
+      "featured": true,
+      "availability": "inquire"
+    },
+    {
+      "id": "the-bird-of-hermes",
+      "title": "The Bird of Hermes",
+      "legacyTitle": "The bird of hermes",
+      "image": "art/The bird of hermes.jpg",
+      "thumbnail": "art/thumbnails/The bird of hermes.jpg",
+      "year": "2024",
+      "medium": "Watercolor and fineliner on sketchbook paper",
+      "visible": true,
+      "featured": true,
+      "availability": "inquire"
+    },
+    {
+      "id": "the-black-swordsman",
+      "title": "The Black Swordsman",
+      "legacyTitle": "The black Swordsman",
+      "image": "art/The black Swordsman.jpg",
+      "thumbnail": "art/thumbnails/The black Swordsman.jpg",
+      "year": "2023",
+      "medium": "Acrylic on canvas, wooden frame",
+      "visible": true,
+      "featured": false,
+      "availability": "inquire"
+    },
+    {
+      "id": "tomura-shigaraki",
+      "title": "Tomura Shigaraki",
+      "legacyTitle": "Tomura Shigaraki",
+      "image": "art/Tomura Shigaraki.jpg",
+      "thumbnail": "art/thumbnails/Tomura Shigaraki.jpg",
+      "year": "2026",
+      "medium": "Watercolor and fineliner on sketchbook paper",
+      "visible": true,
+      "featured": false,
+      "availability": "inquire"
+    },
+    {
+      "id": "toph",
+      "title": "Toph",
+      "legacyTitle": "Toph",
+      "image": "art/Toph.jpg",
+      "thumbnail": "art/thumbnails/Toph.jpg",
+      "year": "2021",
+      "medium": "Acrylic on canvas, wooden frame",
+      "visible": true,
+      "featured": true,
+      "availability": "inquire"
+    },
+    {
+      "id": "tusk",
+      "title": "Tusk",
+      "legacyTitle": "Tusk",
+      "image": "art/Tusk.jpg",
+      "thumbnail": "art/thumbnails/Tusk.jpg",
+      "year": "2026",
+      "medium": "Watercolor and fineliner on sketchbook paper",
+      "visible": true,
+      "featured": false,
+      "availability": "inquire"
+    }
+  ]
+}

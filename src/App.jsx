@@ -1,80 +1,15 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { motion, AnimatePresence, MotionConfig, useReducedMotion } from "framer-motion";
 import CommissionPage from "./CommissionPage";
+import { artworks, aboutArtworks } from "./artworks.js";
+import { resolveArtworkReference } from "./catalog.js";
 import { commissionLink, CONTACT_EMAIL, INSTAGRAM_URL, WHATSAPP_NUMBER, WHATSAPP_URL } from "./commissions";
 
 const TAU = Math.PI * 2;
+const landingArtworks = artworks.slice(0, 16);
 const landingTitle = "sycophantic, prophetic, socratic junkie wannabe";
 const DesktopGallery = lazy(() => import("./DesktopGallery"));
-
-const artworkImageModules = import.meta.glob("../art/*.{avif,gif,jpeg,jpg,png,webp}", {
-  eager: true,
-  import: "default",
-  query: "?url",
-});
-
-const artworkThumbnailModules = import.meta.glob("../art/thumbnails/*.{avif,gif,jpeg,jpg,png,webp}", {
-  eager: true,
-  import: "default",
-  query: "?url",
-});
-
-function titleFromArtworkPath(path) {
-  const fileName = path.split("/").pop() ?? "Untitled";
-  return fileName
-    .replace(/\.[^.]+$/, "")
-    .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function artworkFormatRank(path) {
-  const extension = path.split(".").pop()?.toLowerCase() ?? "";
-  return { webp: 0, avif: 1, jpg: 2, jpeg: 2, png: 3, gif: 4 }[extension] ?? 5;
-}
-
-const artworkEntries = Array.from(
-  Object.entries(artworkImageModules).reduce((selected, [path, image]) => {
-    const title = titleFromArtworkPath(path);
-    const current = selected.get(title);
-
-    if (!current || artworkFormatRank(path) < artworkFormatRank(current.path)) {
-      selected.set(title, { path, image, title });
-    }
-
-    return selected;
-  }, new Map()).values()
-).sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" }));
-
-const artworkThumbnails = new Map(
-  Object.entries(artworkThumbnailModules).map(([path, image]) => [titleFromArtworkPath(path), image])
-);
-
-const canvasMedium = "Acrylic on canvas, wooden frame";
-const sketchbookMedium = "Watercolor and fineliner on sketchbook paper";
-const artworkCatalog = {
-  decay: { year: "2021", medium: canvasMedium },
-  explode: { year: "2022", medium: canvasMedium },
-  toph: { year: "2021", medium: canvasMedium },
-  "the black swordsman": { year: "2023", medium: canvasMedium },
-  "the bird of hermes": { year: "2024", medium: sketchbookMedium },
-  "eight handled sword divergent sila divine general mahoraga": { year: "2025", medium: sketchbookMedium },
-  "golden experience": { year: "2025", medium: sketchbookMedium },
-  "hail to the thief": { year: "2025", medium: sketchbookMedium },
-  "monkey d. luffy": { year: "2025", medium: sketchbookMedium },
-  "stone free": { year: "2026", medium: sketchbookMedium },
-  "tomura shigaraki": { year: "2026", medium: sketchbookMedium },
-  tusk: { year: "2026", medium: sketchbookMedium },
-};
-
-const artworks = artworkEntries.map(({ image, title }) => ({
-  title,
-  image,
-  thumbnail: artworkThumbnails.get(title) ?? image,
-  ...artworkCatalog[title.toLowerCase()],
-}));
-
-const artworksByTitle = new Map(artworks.map((art) => [art.title.toLowerCase(), art]));
+const StudioPage = lazy(() => import("./StudioPage"));
 
 const routes = [
   { path: "/", label: "Home" },
@@ -92,7 +27,7 @@ function readLocation() {
   const isContact = path === "/contact";
 
   return {
-    path: isContact ? "/commissions" : routes.find((route) => route.path === path)?.path ?? "/",
+    path: path === "/studio" ? "/studio" : isContact ? "/commissions" : routes.find((route) => route.path === path)?.path ?? "/",
     type: isContact ? "general" : params.get("type"),
     isContact,
     reference: params.get("reference"),
@@ -135,11 +70,11 @@ function ArtworkImage({ art }) {
   return (
     <div className="artwork-image">
       {imageState !== "ready" && (
-        <img src={art.thumbnail} alt={art.title} className="absolute inset-0 h-full w-full object-contain" />
+        <img src={art.thumbnail} alt={art.alt || art.title} className="absolute inset-0 h-full w-full object-contain" />
       )}
       <img
         src={art.image}
-        alt={imageState === "ready" ? art.title : ""}
+        alt={imageState === "ready" ? art.alt || art.title : ""}
         aria-hidden={imageState !== "ready"}
         decoding="async"
         data-artwork-image
@@ -237,24 +172,27 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
                 <dl className="artwork-facts">
                   {art.year && <div><dt>Year</dt><dd>{art.year}</dd></div>}
                   {art.medium && <div><dt>Medium</dt><dd>{art.medium}</dd></div>}
+                  {art.availability === "available" && <div><dt>Availability</dt><dd>Available</dd></div>}
+                  {art.availability === "unavailable" && <div><dt>Availability</dt><dd>Unavailable</dd></div>}
                 </dl>
+                {art.description && <p className="mt-4 text-sm leading-6 text-sky-100/80">{art.description}</p>}
                 <a href={art.image} target="_blank" rel="noopener noreferrer" className="viewer-image-link">Open full-resolution image</a>
               </div>
 
               <div className="viewer-footer">
                 <div className="viewer-actions">
-                  <a href={commissionLink("portrait", art.title)}
+                  <a href={commissionLink("portrait", art.id)}
                     onClick={(event) => {
                       if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onInquire();
                     }} className="viewer-primary">
                     Commission in this style
                   </a>
-                  <a href={commissionLink("artwork", art.title)}
+                  {art.availability !== "unavailable" && <a href={commissionLink("artwork", art.id)}
                     onClick={(event) => {
                       if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onInquire();
                     }} className="viewer-secondary">
                     Ask to buy
-                  </a>
+                  </a>}
                 </div>
                 <div className="viewer-film" role="group" aria-label="Browse nearby artwork">
                   {nearby.map(({ piece, direction }) => (
@@ -280,7 +218,7 @@ function GridGallery({ artworksToShow, onSelect }) {
   return (
     <div className="archive-grid mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
       {artworksToShow.map((art) => (
-        <article key={art.title} className="archive-tile flex min-w-0 flex-col">
+        <article key={art.id} className="archive-tile flex min-w-0 flex-col">
           <button type="button" onClick={() => onSelect(art)} className="group block w-full text-left">
             <div className="overflow-hidden">
               <img src={art.thumbnail} alt="" loading="lazy" decoding="async"
@@ -289,7 +227,7 @@ function GridGallery({ artworksToShow, onSelect }) {
             <h2 className="break-words px-3 py-3 text-sm font-semibold leading-snug text-white sm:px-5 sm:text-xl">{art.title}</h2>
           </button>
           {art.year && <p className="px-3 text-sm text-sky-100/70 sm:px-5">{art.year}</p>}
-          <a href={commissionLink("artwork", art.title)} aria-label={`Ask to buy ${art.title}`} className="mt-auto inline-flex min-h-11 items-center self-start px-3 text-sm text-sky-100/85 underline underline-offset-4 sm:px-5">Ask to buy</a>
+          {art.availability !== "unavailable" && <a href={commissionLink("artwork", art.id)} aria-label={`Ask to buy ${art.title}`} className="mt-auto inline-flex min-h-11 items-center self-start px-3 text-sm text-sky-100/85 underline underline-offset-4 sm:px-5">Ask to buy</a>}
         </article>
       ))}
     </div>
@@ -605,7 +543,7 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
             return (
               <button
                 type="button"
-                key={`${art.title}-${position}`}
+                key={`${art.id}-${position}`}
                 aria-label={`Open ${art.title}`}
                 onClick={() => {
                   if (performance.now() >= suppressClick.current) onSelect(art);
@@ -739,7 +677,7 @@ function supportsWebGL() {
 }
 
 function DesktopGalleryPreview({ onSelect }) {
-  const featured = artworks[Math.floor(artworks.length / 2)];
+  const featured = landingArtworks[Math.floor(landingArtworks.length / 2)];
 
   return (
     <div className="desktop-gallery-preview">
@@ -778,7 +716,7 @@ function HomePage({ onSelect }) {
 
   return (
     <section className="relative min-h-svh overflow-x-clip md:min-h-[max(100svh,680px)]" aria-label="Möbius artwork gallery">
-      {isMobile && <ArcCarousel artworks={artworks} onSelect={onSelect} navigate={navigate} />}
+      {isMobile && <ArcCarousel artworks={landingArtworks} onSelect={onSelect} navigate={navigate} />}
       {!isMobile && !use3D && <DesktopGalleryPreview onSelect={onSelect} />}
       {use3D && !ready && (
         <div className="desktop-gallery-loading" role="status" aria-label="Loading gallery">
@@ -812,7 +750,7 @@ function HomePage({ onSelect }) {
         >
           <GalleryBoundary onFailure={showFallback}>
             <Suspense fallback={null}>
-              <DesktopGallery artworks={artworks} isVisible={isVisible} motionRef={motionRef} onSelect={onSelect} onProgress={setActiveIndex} onFailure={showFallback} />
+              <DesktopGallery artworks={landingArtworks} isVisible={isVisible} motionRef={motionRef} onSelect={onSelect} onProgress={setActiveIndex} onFailure={showFallback} />
             </Suspense>
           </GalleryBoundary>
         </div>
@@ -822,8 +760,8 @@ function HomePage({ onSelect }) {
         <>
           <div className="pointer-events-none absolute left-1/2 top-[55%] -translate-x-1/2 text-center">
             <div className="flex items-center gap-1.5" aria-hidden="true">
-              {artworks.map((art, index) => (
-                <span key={art.title} className={`h-1 rounded-full transition-all ${index === activeIndex ? "w-7 bg-sky-100/80" : "w-1.5 bg-sky-100/22"}`} />
+              {landingArtworks.map((art, index) => (
+                <span key={art.id} className={`h-1 rounded-full transition-all ${index === activeIndex ? "w-7 bg-sky-100/80" : "w-1.5 bg-sky-100/22"}`} />
               ))}
             </div>
           </div>
@@ -856,8 +794,7 @@ function WorkPage({ onSelect }) {
   );
 }
 
-function AboutArtwork({ title, onSelect }) {
-  const art = artworksByTitle.get(title);
+function AboutArtwork({ art, onSelect }) {
 
   return (
     <button type="button" className="about-art" onClick={() => onSelect(art)} aria-label={`View ${art.title}`}>
@@ -880,15 +817,15 @@ function AboutPage({ onSelect }) {
             </div>
           </div>
           <div className="about-feature">
-            <AboutArtwork title="decay" onSelect={onSelect} />
+            <AboutArtwork art={aboutArtworks[0]} onSelect={onSelect} />
           </div>
         </div>
 
-        <div className="about-studies">
-          <AboutArtwork title="the bird of hermes" onSelect={onSelect} />
-          <AboutArtwork title="toph" onSelect={onSelect} />
-          <AboutArtwork title="stone free" onSelect={onSelect} />
-        </div>
+        {aboutArtworks.length > 1 && (
+          <div className="about-studies">
+            {aboutArtworks.slice(1).map((art) => <AboutArtwork key={art.id} art={art} onSelect={onSelect} />)}
+          </div>
+        )}
 
         <div className="about-invitation">
           <h2>Don't be a stranger.</h2>
@@ -943,8 +880,9 @@ export default function MobiusPortfolio() {
   const [location, setLocation] = useState(readLocation);
   const [modalArt, setModalArt] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const isStudio = location.path === "/studio";
   const activeRoute = routes.find((item) => item.path === location.path) ?? routes[0];
-  const inquiryArt = artworks.find((art) => art.title === location.reference);
+  const inquiryArt = resolveArtworkReference(artworks, location.reference);
 
   useEffect(() => {
     function syncRoute() {
@@ -962,10 +900,10 @@ export default function MobiusPortfolio() {
   }, []);
 
   useEffect(() => {
-    const pageTitle = location.isContact ? "Contact" : activeRoute.label;
-    document.title = activeRoute.path === "/" ? "The Chinese Satellite Archive | Art by Dion" : `${pageTitle} | The Chinese Satellite Archive`;
+    const pageTitle = isStudio ? "Studio" : location.isContact ? "Contact" : activeRoute.label;
+    document.title = !isStudio && activeRoute.path === "/" ? "The Chinese Satellite Archive | Art by Dion" : `${pageTitle} | The Chinese Satellite Archive`;
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-  }, [activeRoute, location.isContact]);
+  }, [activeRoute, isStudio, location.isContact]);
 
   const closeModal = useCallback(() => setModalArt(null), []);
 
@@ -973,10 +911,14 @@ export default function MobiusPortfolio() {
     setModalArt((currentArt) => {
       if (!currentArt) return currentArt;
 
-      const currentIndex = artworks.findIndex((art) => art.title === currentArt.title);
+      const currentIndex = artworks.findIndex((art) => art.id === currentArt.id);
       return artworks[mod(currentIndex + direction, artworks.length)];
     });
   }, []);
+
+  if (isStudio) {
+    return <Suspense fallback={<div className="desktop-gallery-loading" role="status" aria-label="Loading studio"><MobiusMark animated /></div>}><StudioPage /></Suspense>;
+  }
 
   return (
     <MotionConfig reducedMotion="user">

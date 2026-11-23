@@ -696,7 +696,7 @@ function Scene({ artworks, motionRef, onSelect, onProgress }) {
 
         {artworks.map((art, i) => (
           <MemoizedArtworkPanel
-            key={art.title}
+            key={art.id}
             index={i}
             count={artworks.length}
             art={art}
