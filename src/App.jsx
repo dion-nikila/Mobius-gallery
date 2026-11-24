@@ -268,11 +268,28 @@ function SiteIcon({ name, className }) {
   );
 }
 
+/** @type {import("framer-motion").MotionProps} */
+const artworkReveal = {
+  initial: "waiting",
+  whileInView: "visible",
+  viewport: { once: true, amount: 0.16 },
+  variants: {
+    waiting: { opacity: 0.78, y: 12 },
+    visible: (index) => ({
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, delay: index * 0.055, ease: [0.22, 1, 0.36, 1] },
+    }),
+  },
+};
+
 function GridGallery({ artworksToShow, onSelect }) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <div className="archive-grid">
-      {artworksToShow.map((art) => (
-        <article key={art.id} className="archive-tile">
+      {artworksToShow.map((art, index) => (
+        <motion.article key={art.id} className="archive-tile" custom={index % 4} {...(reduceMotion ? {} : artworkReveal)}>
           <button type="button" onClick={() => onSelect(art)} className="archive-tile-button">
             <span className="archive-tile-media">
               <img src={art.thumbnail} alt="" loading="lazy" decoding="async" />
@@ -290,7 +307,7 @@ function GridGallery({ artworksToShow, onSelect }) {
               </a>
             )}
           </div>
-        </article>
+        </motion.article>
       ))}
     </div>
   );
@@ -843,15 +860,18 @@ function WorkPage({ onSelect }) {
   );
 }
 
-function AboutArtwork({ art, onSelect }) {
+function AboutArtwork({ art, onSelect, index = 0 }) {
+  const reduceMotion = useReducedMotion();
+
   return (
-    <button type="button" className="about-art" onClick={() => onSelect(art)} aria-label={`View ${art.title}`}>
+    <motion.button type="button" className="about-art" onClick={() => onSelect(art)} aria-label={`View ${art.title}`}
+      custom={index} {...(reduceMotion ? {} : artworkReveal)}>
       <img src={art.thumbnail} alt="" decoding="async" />
       <span className="about-art-caption text-small">
         {art.title}
         <SiteIcon name="expand" className="tile-action-icon" />
       </span>
-    </button>
+    </motion.button>
   );
 }
 
@@ -874,7 +894,9 @@ function AboutPage({ onSelect }) {
 
         {aboutArtworks.length > 1 && (
           <div className="about-studies">
-            {aboutArtworks.slice(1).map((art) => <AboutArtwork key={art.id} art={art} onSelect={onSelect} />)}
+            {aboutArtworks.slice(1).map((art, index) => (
+              <AboutArtwork key={art.id} art={art} onSelect={onSelect} index={index} />
+            ))}
           </div>
         )}
 
@@ -905,56 +927,53 @@ function MobiusMark({ animated = false }) {
   );
 }
 
-const footerGroups = [
-  {
-    title: "Explore",
-    links: [
-      { label: "Browse art", href: "#/work", icon: "gallery" },
-      { label: "About", href: "#/about", icon: "about" },
-      { label: "Get a quote", href: "#/commissions", icon: "quote" },
-    ],
-  },
-  {
-    title: "Contact",
-    links: [
-      { label: "Instagram", href: INSTAGRAM_URL, icon: "instagram" },
-      { label: "WhatsApp", href: WHATSAPP_URL, icon: "whatsapp" },
-      { label: "Email", href: `mailto:${CONTACT_EMAIL}`, icon: "email" },
-      { label: "+94 76 770 2100", href: `tel:+${WHATSAPP_NUMBER}`, icon: "phone" },
-    ],
-  },
+const footerPages = [
+  { label: "Browse art", href: "#/work", icon: "gallery" },
+  { label: "About", href: "#/about", icon: "about" },
+  { label: "Get a quote", href: "#/commissions", icon: "quote" },
+];
+
+const footerContacts = [
+  { label: "Instagram", href: INSTAGRAM_URL, icon: "instagram" },
+  { label: "WhatsApp", href: WHATSAPP_URL, icon: "whatsapp" },
+  { label: "Email", href: `mailto:${CONTACT_EMAIL}`, icon: "email" },
+  { label: "Call +94 76 770 2100", href: `tel:+${WHATSAPP_NUMBER}`, icon: "phone" },
 ];
 
 function SiteFooter() {
   return (
     <footer className="site-footer">
-      <div className="container">
-        <div className="footer-main">
-          <div className="footer-brand">
-            <a href="#/" className="footer-signature">
-              <MobiusMark />
-              <p className="footer-wordmark">The Chinese<br />Satellite Archive</p>
-            </a>
-          </div>
-          <div className="footer-groups">
-            {footerGroups.map(({ title, links }) => (
-              <nav key={title} className="footer-group" aria-label={title}>
-                <p className="label">{title}</p>
-                <ul>
-                  {links.map(({ href, label, icon }) => (
-                    <li key={href}>
-                      <a href={href} className="footer-link text-small">
-                        <SiteIcon name={icon} className="footer-icon" />
-                        <span>{label}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            ))}
-          </div>
+      <div className="container footer-bar">
+        <div className="footer-brand">
+          <a href="#/" className="footer-signature">
+            <MobiusMark />
+            <span className="footer-wordmark text-small">The Chinese Satellite Archive</span>
+          </a>
+          <p className="footer-credit text-small">© {new Date().getFullYear()} Dion · Sri Lanka</p>
         </div>
-        <p className="footer-credit text-small">© {new Date().getFullYear()} Dion · Sri Lanka</p>
+        <nav className="footer-explore" aria-label="Explore">
+          <ul>
+            {footerPages.map(({ href, label, icon }) => (
+              <li key={href}>
+                <a href={href} className="footer-link text-small">
+                  <SiteIcon name={icon} className="footer-icon" />
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <nav className="footer-contact" aria-label="Contact and socials">
+          <ul>
+            {footerContacts.map(({ href, label, icon }) => (
+              <li key={href}>
+                <a href={href} className="footer-link footer-icon-link" aria-label={label} title={label}>
+                  <SiteIcon name={icon} className="footer-icon" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
     </footer>
   );
