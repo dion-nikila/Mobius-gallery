@@ -218,25 +218,6 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
 
 const siteIcons = {
   expand: <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />,
-  gallery: (
-    <>
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <circle cx="8.5" cy="9" r="1.5" />
-      <path d="m3 17 5-4 4 3 4-5 5 5" />
-    </>
-  ),
-  about: (
-    <>
-      <circle cx="12" cy="8" r="3.5" />
-      <path d="M5 20v-1a7 7 0 0 1 14 0v1" />
-    </>
-  ),
-  quote: (
-    <>
-      <rect x="5" y="3" width="14" height="18" rx="2" />
-      <path d="M9 8h6m-6 4h6m-6 4h4" />
-    </>
-  ),
   instagram: (
     <>
       <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -464,7 +445,7 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
 
   return (
     <div
-      className="mobile-gallery relative overflow-x-clip"
+      className="mobile-gallery relative overflow-x-clip bg-[#02040a] px-5 text-white"
       tabIndex={0}
       aria-label="Artwork carousel"
       onKeyDown={(event) => {
@@ -667,23 +648,23 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
             type="button"
             aria-label="Previous artwork"
             onClick={() => advance(-1)}
-            className="icon-button"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.035] text-3xl leading-none text-white/70 transition hover:border-white/28 hover:text-white"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>
+            ‹
           </button>
 
-          <p className="mobile-gallery-title">{activeArtwork.title}</p>
+          <h2 className="mobile-gallery-title min-w-0 flex-1 text-base font-bold leading-tight text-white">{activeArtwork.title}</h2>
 
           <button
             type="button"
             aria-label="Next artwork"
             onClick={() => advance(1)}
-            className="icon-button"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.035] text-3xl leading-none text-white/70 transition hover:border-white/28 hover:text-white"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+            ›
           </button>
         </div>
-        <div className="mobile-gallery-label label">
+        <div className="mt-2 text-[11px] uppercase tracking-[0.12em] text-white/30">
           Möbius archive
         </div>
 
@@ -703,17 +684,25 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
         </div>
       </div>
 
-      <div className="mobile-hero">
-        <div className="container">
-          <h1>{landingTitle}</h1>
-          <div className="hero-actions">
-            <button type="button" onClick={() => navigate("/work")} className="btn btn--primary">
-              Browse art
-            </button>
-            <button type="button" onClick={() => navigate("/commissions")} className="btn btn--secondary">
-              Commission a piece
-            </button>
-          </div>
+      <div className="relative z-20 mt-5">
+        <h1 className="max-w-sm text-[clamp(1.35rem,5.8vw,1.8rem)] font-semibold leading-[1.08] tracking-[-0.02em] text-white">
+          {landingTitle}
+        </h1>
+        <div className="mt-1 flex flex-wrap gap-x-5">
+          <button
+            type="button"
+            onClick={() => navigate("/work")}
+            className="landing-link"
+          >
+            Browse art
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/commissions")}
+            className="landing-link"
+          >
+            Commission a piece
+          </button>
         </div>
       </div>
     </div>
@@ -756,6 +745,13 @@ function DesktopGalleryPreview({ onSelect }) {
       <button type="button" className="desktop-gallery-art" onClick={() => onSelect(featured)} aria-label={`Open ${featured.title}`}>
         <img src={featured.thumbnail} alt="" decoding="async" />
       </button>
+      <div className="absolute inset-x-0 bottom-0 px-5 pb-8 md:px-10 md:pb-10">
+        <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">{landingTitle}</h1>
+        <div className="mt-2 flex w-fit flex-wrap gap-x-5">
+          <a href="#/work" className="landing-link">Browse art</a>
+          <a href={commissionLink()} className="landing-link">Commission a piece</a>
+        </div>
+      </div>
     </div>
   );
 }
@@ -779,7 +775,7 @@ function HomePage({ onSelect }) {
   }
 
   return (
-    <section className="relative min-h-svh overflow-x-clip md:min-h-[max(100svh,680px)]" aria-label="Möbius artwork gallery">
+    <section className="landing-page relative min-h-svh overflow-x-clip md:min-h-[max(100svh,680px)]" aria-label="Möbius artwork gallery">
       {isMobile && <ArcCarousel artworks={landingArtworks} onSelect={onSelect} navigate={navigate} />}
       {!isMobile && !use3D && <DesktopGalleryPreview onSelect={onSelect} />}
       {use3D && !ready && (
@@ -821,25 +817,23 @@ function HomePage({ onSelect }) {
       )}
 
       {ready && (
-        <div className="pointer-events-none absolute left-1/2 top-[55%] -translate-x-1/2 text-center">
-          <div className="flex items-center gap-1.5" aria-hidden="true">
-            {landingArtworks.map((art, index) => (
-              <span key={art.id} className={`h-1 rounded-full transition-all ${index === activeIndex ? "w-7 bg-sky-100/80" : "w-1.5 bg-sky-100/22"}`} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {!isMobile && (ready || !use3D) && (
-        <div className="desktop-hero">
-          <div className="container">
-            <h1>{landingTitle}</h1>
-            <div className="hero-actions">
-              <a href="#/work" className="btn btn--primary">Browse art</a>
-              <a href={commissionLink()} className="btn btn--secondary">Commission a piece</a>
+        <>
+          <div className="pointer-events-none absolute left-1/2 top-[55%] -translate-x-1/2 text-center">
+            <div className="flex items-center gap-1.5" aria-hidden="true">
+              {landingArtworks.map((art, index) => (
+                <span key={art.id} className={`h-1 rounded-full transition-all ${index === activeIndex ? "w-7 bg-sky-100/80" : "w-1.5 bg-sky-100/22"}`} />
+              ))}
             </div>
           </div>
-        </div>
+
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-5 pb-8 md:px-10 md:pb-10">
+            <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">{landingTitle}</h1>
+            <div className="pointer-events-auto mt-2 flex w-fit flex-wrap gap-x-5">
+              <a href="#/work" className="landing-link">Browse art</a>
+              <a href={commissionLink()} className="landing-link">Commission a piece</a>
+            </div>
+          </div>
+        </>
       )}
     </section>
   );
@@ -927,12 +921,6 @@ function MobiusMark({ animated = false }) {
   );
 }
 
-const footerPages = [
-  { label: "Browse art", href: "#/work", icon: "gallery" },
-  { label: "About", href: "#/about", icon: "about" },
-  { label: "Get a quote", href: "#/commissions", icon: "quote" },
-];
-
 const footerContacts = [
   { label: "Instagram", href: INSTAGRAM_URL, icon: "instagram" },
   { label: "WhatsApp", href: WHATSAPP_URL, icon: "whatsapp" },
@@ -951,23 +939,11 @@ function SiteFooter() {
           </a>
           <p className="footer-credit text-small">© {new Date().getFullYear()} Dion · Sri Lanka</p>
         </div>
-        <nav className="footer-explore" aria-label="Explore">
-          <ul>
-            {footerPages.map(({ href, label, icon }) => (
-              <li key={href}>
-                <a href={href} className="footer-link text-small">
-                  <SiteIcon name={icon} className="footer-icon" />
-                  {label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
         <nav className="footer-contact" aria-label="Contact and socials">
           <ul>
             {footerContacts.map(({ href, label, icon }) => (
               <li key={href}>
-                <a href={href} className="footer-link footer-icon-link" aria-label={label} title={label}>
+                <a href={href} className="footer-icon-link" aria-label={label} title={label}>
                   <SiteIcon name={icon} className="footer-icon" />
                 </a>
               </li>
