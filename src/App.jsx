@@ -83,7 +83,7 @@ function ArtworkImage({ art }) {
         onError={() => setImageState("unavailable")}
       />
       {imageState === "unavailable" && (
-        <p role="status" className="absolute inset-x-0 bottom-0 bg-black/80 px-3 py-2 text-center text-xs text-white/80">Showing the artwork preview.</p>
+        <p role="status" className="viewer-image-status">Showing the artwork preview.</p>
       )}
     </div>
   );
@@ -138,7 +138,7 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
     <AnimatePresence>
       {art && (
         <motion.div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/85 p-2 backdrop-blur-xl sm:p-5"
+          className="viewer-backdrop"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -150,57 +150,59 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="artwork-title"
-            className="archive-dialog artwork-viewer"
+            className="artwork-viewer"
             initial={{ scale: 0.97, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.97, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="exhibit-toolbar">
-              <button type="button" aria-label="Close artwork detail" onClick={onClose} className="viewer-control">×</button>
-            </div>
+            <button type="button" aria-label="Close artwork detail" onClick={onClose} className="icon-button viewer-control">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                <path d="m6 6 12 12M18 6 6 18" />
+              </svg>
+            </button>
 
-            <div className="viewer-image-panel">
-              <img className="viewer-image-glow" src={art.thumbnail} alt="" aria-hidden="true" />
-              <ArtworkImage key={art.image} art={art} />
-            </div>
-
-            <div className="viewer-details">
-              <div>
-                <h2 id="artwork-title" className="exhibit-title" aria-live="polite">{art.title}</h2>
-                <dl className="artwork-facts">
-                  {art.year && <div><dt>Year</dt><dd>{art.year}</dd></div>}
-                  {art.medium && <div><dt>Medium</dt><dd>{art.medium}</dd></div>}
-                  {art.availability === "available" && <div><dt>Availability</dt><dd>Available</dd></div>}
-                  {art.availability === "unavailable" && <div><dt>Availability</dt><dd>Unavailable</dd></div>}
-                </dl>
-                {art.description && <p className="mt-4 text-sm leading-6 text-sky-100/80">{art.description}</p>}
-                <a href={art.image} target="_blank" rel="noopener noreferrer" className="viewer-image-link">Open full-resolution image</a>
+            <div className="viewer-scroll">
+              <div className="viewer-image-panel">
+                <img className="viewer-image-glow" src={art.thumbnail} alt="" aria-hidden="true" />
+                <ArtworkImage key={art.image} art={art} />
               </div>
 
-              <div className="viewer-footer">
-                <div className="viewer-actions">
-                  <a href={commissionLink("portrait", art.id)}
-                    onClick={(event) => {
-                      if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onInquire();
-                    }} className="viewer-primary">
-                    Commission in this style
-                  </a>
-                  {art.availability !== "unavailable" && <a href={commissionLink("artwork", art.id)}
-                    onClick={(event) => {
-                      if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onInquire();
-                    }} className="viewer-secondary">
-                    Ask to buy
-                  </a>}
+              <div className="viewer-details">
+                <div className="viewer-content">
+                  <h2 id="artwork-title" aria-live="polite">{art.title}</h2>
+                  <dl className="artwork-facts">
+                    {art.year && <div><dt className="label">Year</dt><dd>{art.year}</dd></div>}
+                    {art.medium && <div><dt className="label">Medium</dt><dd>{art.medium}</dd></div>}
+                    {art.availability === "available" && <div><dt className="label">Availability</dt><dd>Available</dd></div>}
+                    {art.availability === "unavailable" && <div><dt className="label">Availability</dt><dd>Unavailable</dd></div>}
+                  </dl>
+                  {art.description && <p className="viewer-description">{art.description}</p>}
+                  <a href={art.image} target="_blank" rel="noopener noreferrer" className="text-link text-small">Open full-resolution image</a>
+                  <div className="viewer-actions">
+                    <a href={commissionLink("portrait", art.id)}
+                      onClick={(event) => {
+                        if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onInquire();
+                      }} className="btn btn--primary">
+                      Commission in this style
+                    </a>
+                    {art.availability !== "unavailable" && <a href={commissionLink("artwork", art.id)}
+                      onClick={(event) => {
+                        if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onInquire();
+                      }} className="btn btn--secondary">
+                      Ask to buy
+                    </a>}
+                  </div>
                 </div>
+
                 <div className="viewer-film" role="group" aria-label="Browse nearby artwork">
                   {nearby.map(({ piece, direction }) => (
                     <button key={direction} type="button" onClick={() => onNavigate(direction)}>
                       <img src={piece.thumbnail} alt="" />
                       <span>
-                        <small>{direction < 0 ? "Previous" : "Next"}</small>
-                        <span>{piece.title}</span>
+                        <span className="label">{direction < 0 ? "Previous" : "Next"}</span>
+                        <span className="viewer-film-title">{piece.title}</span>
                       </span>
                     </button>
                   ))}
@@ -216,18 +218,18 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
 
 function GridGallery({ artworksToShow, onSelect }) {
   return (
-    <div className="archive-grid mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+    <div className="archive-grid">
       {artworksToShow.map((art) => (
-        <article key={art.id} className="archive-tile flex min-w-0 flex-col">
-          <button type="button" onClick={() => onSelect(art)} className="group block w-full text-left">
+        <article key={art.id} className="archive-tile">
+          <button type="button" onClick={() => onSelect(art)} className="archive-tile-button">
             <div className="overflow-hidden">
               <img src={art.thumbnail} alt="" loading="lazy" decoding="async"
-                className="w-full bg-[#070c15] object-cover transition duration-300 group-hover:scale-105" />
+                className="archive-tile-image" />
             </div>
-            <h2 className="break-words px-3 py-3 text-sm font-semibold leading-snug text-white sm:px-5 sm:text-xl">{art.title}</h2>
+            <p className="archive-tile-title">{art.title}</p>
           </button>
-          {art.year && <p className="px-3 text-sm text-sky-100/70 sm:px-5">{art.year}</p>}
-          {art.availability !== "unavailable" && <a href={commissionLink("artwork", art.id)} aria-label={`Ask to buy ${art.title}`} className="mt-auto inline-flex min-h-11 items-center self-start px-3 text-sm text-sky-100/85 underline underline-offset-4 sm:px-5">Ask to buy</a>}
+          {art.year && <p className="archive-tile-year text-small">{art.year}</p>}
+          {art.availability !== "unavailable" && <a href={commissionLink("artwork", art.id)} aria-label={`Ask to buy ${art.title}`} className="archive-tile-link text-link text-small">Ask to buy</a>}
         </article>
       ))}
     </div>
@@ -236,16 +238,16 @@ function GridGallery({ artworksToShow, onSelect }) {
 
 function PageShell({ eyebrow, title, intro, children, aside }) {
   return (
-    <section className="archive-page relative min-h-screen px-5 pb-20 pt-28 md:pb-24 md:pt-32">
-      <div className="mx-auto max-w-7xl">
-        <div className="archive-heading grid gap-5 pb-8 lg:grid-cols-[1fr_0.65fr] lg:items-end">
+    <section className="archive-page page-section">
+      <div className="container">
+        <div className="archive-heading">
           <div>
-            <div className="text-xs uppercase tracking-[0.34em] text-sky-100/42">{eyebrow}</div>
-            <h1 className="archive-title mt-4 max-w-4xl">
+            <div className="label">{eyebrow}</div>
+            <h1 className="archive-title">
               {title}
             </h1>
           </div>
-          <div className="max-w-xl text-base leading-7 text-sky-100/62 lg:justify-self-end">
+          <div className="archive-intro">
             <p>{intro}</p>
             {aside}
           </div>
@@ -385,7 +387,7 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
 
   return (
     <div
-      className="mobile-gallery relative overflow-x-clip bg-[#02040a] px-5 text-white outline-none"
+      className="mobile-gallery relative overflow-x-clip"
       tabIndex={0}
       aria-label="Artwork carousel"
       onKeyDown={(event) => {
@@ -588,23 +590,23 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
             type="button"
             aria-label="Previous artwork"
             onClick={() => advance(-1)}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.035] text-3xl leading-none text-white/70 transition hover:border-white/28 hover:text-white"
+            className="icon-button"
           >
-            ‹
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>
           </button>
 
-          <h2 className="mobile-gallery-title min-w-0 flex-1 text-base font-bold leading-tight text-white">{activeArtwork.title}</h2>
+          <p className="mobile-gallery-title">{activeArtwork.title}</p>
 
           <button
             type="button"
             aria-label="Next artwork"
             onClick={() => advance(1)}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.035] text-3xl leading-none text-white/70 transition hover:border-white/28 hover:text-white"
+            className="icon-button"
           >
-            ›
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
           </button>
         </div>
-        <div className="mt-2 text-[11px] uppercase tracking-[0.12em] text-white/30">
+        <div className="mobile-gallery-label label">
           Möbius archive
         </div>
 
@@ -624,25 +626,17 @@ function ArcCarousel({ artworks, navigate, onSelect }) {
         </div>
       </div>
 
-      <div className="relative z-20 mt-5">
-        <h1 className="max-w-sm text-[clamp(1.35rem,5.8vw,1.8rem)] font-semibold leading-[1.08] tracking-[-0.02em] text-white">
-          {landingTitle}
-        </h1>
-        <div className="mt-1 flex flex-wrap gap-x-5">
-          <button
-            type="button"
-            onClick={() => navigate("/work")}
-            className="landing-link"
-          >
-            Browse art
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/commissions")}
-            className="landing-link"
-          >
-            Commission a piece
-          </button>
+      <div className="mobile-hero">
+        <div className="container">
+          <h1>{landingTitle}</h1>
+          <div className="hero-actions">
+            <button type="button" onClick={() => navigate("/work")} className="btn btn--primary">
+              Browse art
+            </button>
+            <button type="button" onClick={() => navigate("/commissions")} className="btn btn--secondary">
+              Commission a piece
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -685,13 +679,6 @@ function DesktopGalleryPreview({ onSelect }) {
       <button type="button" className="desktop-gallery-art" onClick={() => onSelect(featured)} aria-label={`Open ${featured.title}`}>
         <img src={featured.thumbnail} alt="" decoding="async" />
       </button>
-      <div className="absolute inset-x-0 bottom-0 px-5 pb-8 md:px-10 md:pb-10">
-        <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">{landingTitle}</h1>
-        <div className="mt-2 flex w-fit flex-wrap gap-x-5">
-          <a href="#/work" className="landing-link">Browse art</a>
-          <a href={commissionLink()} className="landing-link">Commission a piece</a>
-        </div>
-      </div>
     </div>
   );
 }
@@ -757,23 +744,25 @@ function HomePage({ onSelect }) {
       )}
 
       {ready && (
-        <>
-          <div className="pointer-events-none absolute left-1/2 top-[55%] -translate-x-1/2 text-center">
-            <div className="flex items-center gap-1.5" aria-hidden="true">
-              {landingArtworks.map((art, index) => (
-                <span key={art.id} className={`h-1 rounded-full transition-all ${index === activeIndex ? "w-7 bg-sky-100/80" : "w-1.5 bg-sky-100/22"}`} />
-              ))}
-            </div>
+        <div className="pointer-events-none absolute left-1/2 top-[55%] -translate-x-1/2 text-center">
+          <div className="flex items-center gap-1.5" aria-hidden="true">
+            {landingArtworks.map((art, index) => (
+              <span key={art.id} className={`h-1 rounded-full transition-all ${index === activeIndex ? "w-7 bg-sky-100/80" : "w-1.5 bg-sky-100/22"}`} />
+            ))}
           </div>
+        </div>
+      )}
 
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-5 pb-8 md:px-10 md:pb-10">
-            <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-tight text-white md:text-5xl">{landingTitle}</h1>
-            <div className="pointer-events-auto mt-2 flex w-fit flex-wrap gap-x-5">
-              <a href="#/work" className="landing-link">Browse art</a>
-              <a href={commissionLink()} className="landing-link">Commission a piece</a>
+      {!isMobile && (ready || !use3D) && (
+        <div className="desktop-hero">
+          <div className="container">
+            <h1>{landingTitle}</h1>
+            <div className="hero-actions">
+              <a href="#/work" className="btn btn--primary">Browse art</a>
+              <a href={commissionLink()} className="btn btn--secondary">Commission a piece</a>
             </div>
           </div>
-        </>
+        </div>
       )}
     </section>
   );
@@ -786,7 +775,7 @@ function WorkPage({ onSelect }) {
       title="The archive"
       intro="Explore the drawings, or ask about an original or a print."
       aside={
-        <a href={commissionLink()} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-sky-100 underline underline-offset-4">Commission a piece</a>
+        <a href={commissionLink()} className="archive-intro-link text-link text-small">Commission a piece</a>
       }
     >
       <GridGallery artworksToShow={artworks} onSelect={onSelect} />
@@ -806,12 +795,12 @@ function AboutArtwork({ art, onSelect }) {
 
 function AboutPage({ onSelect }) {
   return (
-    <section className="about-page">
-      <div className="about-inner">
+    <section className="about-page page-section">
+      <div className="container">
         <div className="about-hero">
           <div className="about-essay">
-            <h1 className="about-headline">I'm Dion,<br /> I draw things</h1>
-            <div className="about-copy">
+            <h1>I’m Dion,<br /> I draw things</h1>
+            <div className="about-copy text-lead">
               <p>I’m drawn to the details that make a pose recognizable, like the angle of a shoulder or the space between an arm and the torso. I work in acrylic on canvas and in watercolor and fineliner in my sketchbooks.</p>
               <p>I built the gallery around a Möbius strip so the drawings have no obvious first or last. Follow one of the off-center lights and it takes two laps to get back where it started.</p>
             </div>
@@ -828,8 +817,8 @@ function AboutPage({ onSelect }) {
         )}
 
         <div className="about-invitation">
-          <h2>Don't be a stranger.</h2>
-          <p>I make portraits, character art, covers, and posters. If you have a piece in mind, <a href="#/contact">send me a note</a>.</p>
+          <h2>Don’t be a stranger.</h2>
+          <p>I make portraits, character art, covers, and posters. If you have a piece in mind, <a href="#/contact" className="text-link">send me a note</a>.</p>
         </div>
       </div>
     </section>
@@ -857,9 +846,9 @@ function MobiusMark({ animated = false }) {
 function SiteFooter() {
   return (
     <footer className="site-footer">
-      <div className="footer-inner">
+      <div className="container">
         <div className="footer-top">
-          <a href="#/" className="footer-wordmark">The Chinese<br />Satellite Archive</a>
+          <p className="footer-wordmark"><a href="#/">The Chinese<br />Satellite Archive</a></p>
           <MobiusMark />
         </div>
         <div className="footer-bottom">
@@ -922,7 +911,7 @@ export default function MobiusPortfolio() {
 
   return (
     <MotionConfig reducedMotion="user">
-    <div className="relative min-h-screen overflow-x-clip bg-[#02040a] text-white">
+    <div className="portfolio relative min-h-screen overflow-x-clip">
       <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,rgba(5,10,18,0)_0%,rgba(5,10,18,0.36)_100%)]" />
 
       <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.04] [background-image:linear-gradient(90deg,rgba(255,255,255,.7)_1px,transparent_1px)] [background-size:72px_72px]" />
@@ -930,32 +919,31 @@ export default function MobiusPortfolio() {
       <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-40 bg-gradient-to-b from-sky-200/10 to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-28 bg-gradient-to-t from-sky-400/[0.045] to-transparent" />
 
-      <header className="fixed inset-x-0 top-0 z-30 border-b border-white/10 bg-[#02040a]/90 backdrop-blur-xl">
-        <div className="mx-auto flex min-h-[72px] max-w-[1600px] items-center justify-between gap-2 px-4 sm:gap-5 sm:px-6 md:px-8">
-          <a className="min-w-0 py-2" href="#/" onClick={() => setMenuOpen(false)}>
-            <div className="hidden text-[10px] uppercase tracking-[0.23em] text-sky-100/55 sm:block">Art by Dion</div>
-            <div className="text-sm leading-tight font-semibold tracking-tight text-white sm:text-xl">The Chinese Satellite Archive</div>
+      <header className="site-header">
+        <div className="container site-header-inner">
+          <a className="site-brand" href="#/" onClick={() => setMenuOpen(false)}>
+            <div className="label">Art by Dion</div>
+            <div className="site-wordmark">The Chinese Satellite Archive</div>
           </a>
 
-          <nav aria-label="Main navigation" className="hidden items-center gap-8 text-sm text-sky-100/72 md:flex">
+          <nav aria-label="Main navigation" className="site-nav desktop-nav">
             {routes.slice(1).map((item) => (
               <a
                 key={item.path}
                 href={`#${item.path}`}
-                aria-current={activeRoute.path === item.path ? "page" : undefined}
-                className="inline-flex min-h-11 items-center transition hover:text-white aria-[current=page]:text-white"
+                aria-current={!location.isContact && activeRoute.path === item.path ? "page" : undefined}
               >
                 {item.label}
               </a>
             ))}
           </nav>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="header-actions">
             <a
               href="#/contact"
               onClick={() => setMenuOpen(false)}
               aria-current={location.isContact ? "page" : undefined}
-              className="inline-flex min-h-11 items-center rounded-full bg-sky-50 px-3 text-xs font-semibold text-[#07111b] transition hover:bg-white sm:px-4 sm:text-sm"
+              className="btn btn--primary"
             >
               Contact
             </a>
@@ -963,7 +951,7 @@ export default function MobiusPortfolio() {
             <button
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
-              className="min-h-11 rounded-full border border-white/18 px-3 text-xs font-semibold text-sky-100/80 md:hidden"
+              className="btn btn--secondary menu-toggle"
               aria-expanded={menuOpen}
               aria-controls="mobile-navigation"
             >
@@ -978,20 +966,19 @@ export default function MobiusPortfolio() {
           <motion.nav
             id="mobile-navigation"
             aria-label="Mobile navigation"
-            className="fixed inset-x-0 top-[72px] z-30 border-b border-white/10 bg-[#02040a] px-5 py-4 shadow-2xl md:hidden"
+            className="site-nav mobile-nav"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
-            <div className="grid divide-y divide-white/10">
+            <div className="container">
               {routes.map((item) => (
                 <a
                   key={item.path}
                   href={`#${item.path}`}
                   onClick={() => setMenuOpen(false)}
-                  aria-current={activeRoute.path === item.path ? "page" : undefined}
-                  className="flex min-h-11 items-center py-3 text-lg font-semibold text-sky-100/70 hover:text-white aria-[current=page]:text-white"
+                  aria-current={!location.isContact && activeRoute.path === item.path ? "page" : undefined}
                 >
                   {item.label}
                 </a>

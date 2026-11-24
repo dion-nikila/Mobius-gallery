@@ -44,12 +44,12 @@ function RequestForm({ type, artwork, onChoose, isContact }) {
 
   if (status === "sent") {
     return (
-      <section className="notebook-form">
+      <section className="notebook-form notebook-confirmation">
         <div role="status">
-          <h2 className="text-2xl font-semibold">Your request was sent</h2>
-          <p className="mt-3 break-words text-sm leading-6 text-sky-100/78">I’ll reply to <strong>{submission.email}</strong> soon.</p>
+          <h2>Your request was sent</h2>
+          <p>I’ll reply to <strong>{submission.email}</strong> soon.</p>
         </div>
-        <button type="button" className="notebook-send mt-5" onClick={() => setSubmission(null)}>Start another request</button>
+        <button type="button" className="btn btn--primary" onClick={() => setSubmission(null)}>Start another request</button>
       </section>
     );
   }
@@ -61,9 +61,11 @@ function RequestForm({ type, artwork, onChoose, isContact }) {
           {!isContact && (
             <label className="notebook-field">
               What are you looking for?
-              <select name="type" value={type} onChange={(event) => onChoose(event.target.value, artwork?.id)}>
-                {requestTypes.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
-              </select>
+              <span className="notebook-select">
+                <select name="type" value={type} onChange={(event) => onChoose(event.target.value, artwork?.id)}>
+                  {requestTypes.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+                </select>
+              </span>
             </label>
           )}
           <label className="notebook-field">
@@ -73,13 +75,13 @@ function RequestForm({ type, artwork, onChoose, isContact }) {
         </div>
 
         {artwork && (
-          <div className="mt-4 flex items-center gap-3 rounded-lg border border-white/12 bg-black/20 p-3">
-            <img src={artwork.thumbnail} alt="" className="h-12 w-10 shrink-0 rounded object-cover" />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-sky-100/65">{isBuying ? "Selected piece" : "Style reference"}</p>
-              <p className="break-words text-sm font-semibold text-white">{artwork.title}</p>
+          <div className="notebook-reference">
+            <img src={artwork.thumbnail} alt="" />
+            <div className="notebook-reference-copy text-small">
+              <p>{isBuying ? "Selected piece" : "Style reference"}</p>
+              <p className="notebook-reference-title">{artwork.title}</p>
             </div>
-            <button type="button" onClick={() => onChoose(type)} className="min-h-11 shrink-0 text-xs underline underline-offset-4">Remove</button>
+            <button type="button" onClick={() => onChoose(type)} className="text-link text-small">Remove</button>
           </div>
         )}
 
@@ -94,14 +96,14 @@ function RequestForm({ type, artwork, onChoose, isContact }) {
 
         <div hidden><input name="website" tabIndex={-1} autoComplete="off" aria-label="Leave blank" /></div>
         <div className="notebook-actions">
-          <button type="submit" className="notebook-send" disabled={status === "sending"}>
+          <button type="submit" className="btn btn--primary" disabled={status === "sending"}>
             {status === "sending" ? "Sending…" : isBuying ? "Send purchase inquiry" : isGeneral ? "Send message" : "Send quote request"}
           </button>
         </div>
       </fieldset>
       {status === "error" && (
-        <div role="alert" className="mt-4 rounded-lg border border-amber-200/25 bg-amber-50/[.07] p-3 text-sm leading-6 text-amber-50">
-          I couldn’t confirm delivery. Your details are still here. Try again or <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">message me on WhatsApp</a>.
+        <div role="alert" className="notebook-error text-small">
+          I couldn’t confirm delivery. Your details are still here. Try again or <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-link">message me on WhatsApp</a>.
         </div>
       )}
     </form>
@@ -119,21 +121,19 @@ export default function CommissionPage({ type, artwork, isContact }) {
   }
 
   return (
-    <section className="contact-page">
-      <div className="contact-notebook">
+    <section className="contact-page page-section">
+      <div className="container">
         <header className="contact-heading">
+          <div>
+            <h1>{isContact ? "Send a note" : isBuying ? "Ask to buy" : "Get a quote"}</h1>
+            {!isContact && (
+              <p className="text-lead">{isBuying ? "Ask about an original or a print. I’ll confirm availability and delivery." : "Tell me what you’d like made. I’ll reply by email with a quote."}</p>
+            )}
+          </div>
           <div className="contact-orbit" aria-hidden="true">
             <span className="contact-planet" />
             <span className="contact-glint" />
           </div>
-          {isContact ? (
-            <h1>Send a note to<br /> the Chinese Satellite</h1>
-          ) : (
-            <>
-              <h1>{isBuying ? "Ask to buy" : "Get a quote"}</h1>
-              <p>{isBuying ? "Ask about an original or a print. I’ll confirm availability and delivery." : "Tell me what you’d like made. I’ll reply by email with a quote."}</p>
-            </>
-          )}
         </header>
         <RequestForm type={selected} artwork={referenceArtwork} onChoose={choose} isContact={isContact} />
       </div>
