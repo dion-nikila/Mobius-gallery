@@ -117,6 +117,12 @@ button, a, select { cursor: pointer; }
   margin-inline: auto;
 }
 
+.site-header-inner,
+.mobile-nav > .container,
+.footer-bar {
+  width: calc(100% - 2 * clamp(1.25rem, 2.8vw, 2.5rem));
+}
+
 .label {
   color: var(--text);
   font-family: var(--font-mono);
@@ -267,6 +273,13 @@ button, a, select { cursor: pointer; }
 }
 
 @media (width >= 48rem) {
+  .site-header-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+  .site-header-inner > .site-brand { justify-self: start; }
+  .site-header-inner > .header-actions { justify-self: end; }
+
   .desktop-nav {
     display: flex;
     align-items: center;
@@ -1094,6 +1107,7 @@ button, a, select { cursor: pointer; }
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-8);
 }
 .footer-icon-link {
