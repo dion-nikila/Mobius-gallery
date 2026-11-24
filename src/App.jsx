@@ -221,15 +221,20 @@ function GridGallery({ artworksToShow, onSelect }) {
     <div className="archive-grid">
       {artworksToShow.map((art) => (
         <article key={art.id} className="archive-tile">
-          <button type="button" onClick={() => onSelect(art)} className="archive-tile-button">
-            <div className="overflow-hidden">
-              <img src={art.thumbnail} alt="" loading="lazy" decoding="async"
-                className="archive-tile-image" />
-            </div>
-            <p className="archive-tile-title">{art.title}</p>
+          <button type="button" onClick={() => onSelect(art)} className="artwork-trigger">
+            <span className="artwork-mount">
+              <img src={art.thumbnail} alt="" loading="lazy" decoding="async" />
+            </span>
+            <span className="archive-tile-title">{art.title}</span>
           </button>
-          {art.year && <p className="archive-tile-year text-small">{art.year}</p>}
-          {art.availability !== "unavailable" && <a href={commissionLink("artwork", art.id)} aria-label={`Ask to buy ${art.title}`} className="archive-tile-link text-link text-small">Ask to buy</a>}
+          <div className="archive-tile-details">
+            {art.year && <p className="label">{art.year}</p>}
+            {art.availability !== "unavailable" && (
+              <a href={commissionLink("artwork", art.id)} aria-label={`Ask to buy ${art.title}`} className="archive-tile-link text-link text-small">
+                Ask to buy
+              </a>
+            )}
+          </div>
         </article>
       ))}
     </div>
@@ -784,11 +789,12 @@ function WorkPage({ onSelect }) {
 }
 
 function AboutArtwork({ art, onSelect }) {
-
   return (
-    <button type="button" className="about-art" onClick={() => onSelect(art)} aria-label={`View ${art.title}`}>
-      <img src={art.thumbnail} alt="" decoding="async" />
-      <span>{art.title}</span>
+    <button type="button" className="artwork-trigger about-art" onClick={() => onSelect(art)} aria-label={`View ${art.title}`}>
+      <span className="artwork-mount">
+        <img src={art.thumbnail} alt="" decoding="async" />
+      </span>
+      <span className="about-art-caption text-small">{art.title}</span>
     </button>
   );
 }
@@ -846,20 +852,24 @@ function MobiusMark({ animated = false }) {
 function SiteFooter() {
   return (
     <footer className="site-footer">
-      <div className="container">
-        <div className="footer-top">
-          <p className="footer-wordmark"><a href="#/">The Chinese<br />Satellite Archive</a></p>
-          <MobiusMark />
+      <div className="container footer-inner">
+        <div className="footer-identity">
+          <p className="footer-wordmark">
+            <a href="#/">
+              <span>The Chinese<br />Satellite Archive</span>
+              <MobiusMark />
+            </a>
+          </p>
+          <p className="footer-credit text-small">© {new Date().getFullYear()} Dion · Sri Lanka</p>
         </div>
-        <div className="footer-bottom">
-          <p>© {new Date().getFullYear()} Dion · Sri Lanka</p>
-          <nav aria-label="Contact and socials">
-            <a href={INSTAGRAM_URL}>Instagram</a>
-            <a href={WHATSAPP_URL}>WhatsApp</a>
-            <a href={`mailto:${CONTACT_EMAIL}`}>Email</a>
-            <a href={`tel:+${WHATSAPP_NUMBER}`}>+94 76 770 2100</a>
-          </nav>
-        </div>
+        <nav className="footer-nav text-small" aria-label="Contact and socials">
+          <ul>
+            <li><a href={INSTAGRAM_URL}>Instagram</a></li>
+            <li><a href={WHATSAPP_URL}>WhatsApp</a></li>
+            <li><a href={`mailto:${CONTACT_EMAIL}`}>Email</a></li>
+            <li><a href={`tel:+${WHATSAPP_NUMBER}`}>+94 76 770 2100</a></li>
+          </ul>
+        </nav>
       </div>
     </footer>
   );
