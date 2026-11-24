@@ -216,19 +216,74 @@ function ArtworkModal({ art, onClose, onInquire, onNavigate }) {
   );
 }
 
+const siteIcons = {
+  expand: <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />,
+  gallery: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="8.5" cy="9" r="1.5" />
+      <path d="m3 17 5-4 4 3 4-5 5 5" />
+    </>
+  ),
+  about: (
+    <>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20v-1a7 7 0 0 1 14 0v1" />
+    </>
+  ),
+  quote: (
+    <>
+      <rect x="5" y="3" width="14" height="18" rx="2" />
+      <path d="M9 8h6m-6 4h6m-6 4h4" />
+    </>
+  ),
+  instagram: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="0.75" fill="currentColor" stroke="none" />
+    </>
+  ),
+  whatsapp: (
+    <>
+      <path d="M20.8 11.8A8.8 8.8 0 0 1 8 19.7L3 21l1.3-4.8a8.8 8.8 0 1 1 16.5-4.4Z" />
+      <path d="m9.5 7.7 1.2 2.5-1 1.1a6.8 6.8 0 0 0 3 3l1.1-1 2.5 1.2v1.3c-3.5 1.6-9.7-4.6-8.1-8.1h1.3Z" />
+    </>
+  ),
+  email: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m4 7 8 6 8-6" />
+    </>
+  ),
+  phone: <path d="M7 3H4.5C3.7 3 3 3.7 3 4.5A16.5 16.5 0 0 0 19.5 21c.8 0 1.5-.7 1.5-1.5V17l-5-2-1.6 2a13 13 0 0 1-7.4-7.4L9 8 7 3Z" />,
+};
+
+function SiteIcon({ name, className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      {siteIcons[name]}
+    </svg>
+  );
+}
+
 function GridGallery({ artworksToShow, onSelect }) {
   return (
     <div className="archive-grid">
       {artworksToShow.map((art) => (
         <article key={art.id} className="archive-tile">
-          <button type="button" onClick={() => onSelect(art)} className="artwork-trigger">
-            <span className="artwork-mount">
+          <button type="button" onClick={() => onSelect(art)} className="archive-tile-button">
+            <span className="archive-tile-media">
               <img src={art.thumbnail} alt="" loading="lazy" decoding="async" />
             </span>
-            <span className="archive-tile-title">{art.title}</span>
+            <span className="archive-tile-caption">
+              <span className="archive-tile-title">{art.title}</span>
+              <SiteIcon name="expand" className="tile-action-icon" />
+            </span>
           </button>
-          <div className="archive-tile-details">
-            {art.year && <p className="label">{art.year}</p>}
+          <div className="archive-tile-meta">
+            {art.year && <p className="text-small">{art.year}</p>}
             {art.availability !== "unavailable" && (
               <a href={commissionLink("artwork", art.id)} aria-label={`Ask to buy ${art.title}`} className="archive-tile-link text-link text-small">
                 Ask to buy
@@ -790,11 +845,12 @@ function WorkPage({ onSelect }) {
 
 function AboutArtwork({ art, onSelect }) {
   return (
-    <button type="button" className="artwork-trigger about-art" onClick={() => onSelect(art)} aria-label={`View ${art.title}`}>
-      <span className="artwork-mount">
-        <img src={art.thumbnail} alt="" decoding="async" />
+    <button type="button" className="about-art" onClick={() => onSelect(art)} aria-label={`View ${art.title}`}>
+      <img src={art.thumbnail} alt="" decoding="async" />
+      <span className="about-art-caption text-small">
+        {art.title}
+        <SiteIcon name="expand" className="tile-action-icon" />
       </span>
-      <span className="about-art-caption text-small">{art.title}</span>
     </button>
   );
 }
@@ -849,27 +905,56 @@ function MobiusMark({ animated = false }) {
   );
 }
 
+const footerGroups = [
+  {
+    title: "Explore",
+    links: [
+      { label: "Browse art", href: "#/work", icon: "gallery" },
+      { label: "About", href: "#/about", icon: "about" },
+      { label: "Get a quote", href: "#/commissions", icon: "quote" },
+    ],
+  },
+  {
+    title: "Contact",
+    links: [
+      { label: "Instagram", href: INSTAGRAM_URL, icon: "instagram" },
+      { label: "WhatsApp", href: WHATSAPP_URL, icon: "whatsapp" },
+      { label: "Email", href: `mailto:${CONTACT_EMAIL}`, icon: "email" },
+      { label: "+94 76 770 2100", href: `tel:+${WHATSAPP_NUMBER}`, icon: "phone" },
+    ],
+  },
+];
+
 function SiteFooter() {
   return (
     <footer className="site-footer">
-      <div className="container footer-inner">
-        <div className="footer-identity">
-          <p className="footer-wordmark">
-            <a href="#/">
-              <span>The Chinese<br />Satellite Archive</span>
+      <div className="container">
+        <div className="footer-main">
+          <div className="footer-brand">
+            <a href="#/" className="footer-signature">
               <MobiusMark />
+              <p className="footer-wordmark">The Chinese<br />Satellite Archive</p>
             </a>
-          </p>
-          <p className="footer-credit text-small">© {new Date().getFullYear()} Dion · Sri Lanka</p>
+          </div>
+          <div className="footer-groups">
+            {footerGroups.map(({ title, links }) => (
+              <nav key={title} className="footer-group" aria-label={title}>
+                <p className="label">{title}</p>
+                <ul>
+                  {links.map(({ href, label, icon }) => (
+                    <li key={href}>
+                      <a href={href} className="footer-link text-small">
+                        <SiteIcon name={icon} className="footer-icon" />
+                        <span>{label}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
+          </div>
         </div>
-        <nav className="footer-nav text-small" aria-label="Contact and socials">
-          <ul>
-            <li><a href={INSTAGRAM_URL}>Instagram</a></li>
-            <li><a href={WHATSAPP_URL}>WhatsApp</a></li>
-            <li><a href={`mailto:${CONTACT_EMAIL}`}>Email</a></li>
-            <li><a href={`tel:+${WHATSAPP_NUMBER}`}>+94 76 770 2100</a></li>
-          </ul>
-        </nav>
+        <p className="footer-credit text-small">© {new Date().getFullYear()} Dion · Sri Lanka</p>
       </div>
     </footer>
   );
