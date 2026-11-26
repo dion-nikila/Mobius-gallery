@@ -2,6 +2,18 @@
   "schemaVersion": 1,
   "artworks": [
     {
+      "id": "05807e8a-c1fc-425f-b42c-13af7668423c",
+      "title": "I only exist for you.",
+      "image": "art/uploads/05807e8a-c1fc-425f-b42c-13af7668423c.webp",
+      "thumbnail": "art/thumbnails/05807e8a-c1fc-425f-b42c-13af7668423c.webp",
+      "year": "",
+      "medium": "Acrylic on canvas",
+      "visible": true,
+      "featured": true,
+      "availability": "available",
+      "description": "Inspired by \"Clayface\" (2026)"
+    },
+    {
       "id": "decay",
       "title": "Decay",
       "legacyTitle": "Decay",
