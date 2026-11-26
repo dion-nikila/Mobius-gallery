@@ -2,6 +2,18 @@
   "schemaVersion": 1,
   "artworks": [
     {
+      "id": "a9b8e9c2-2384-4f9e-b159-50d4891bafc6",
+      "title": "Inherited your dad's crazy eyes",
+      "image": "art/uploads/a9b8e9c2-2384-4f9e-b159-50d4891bafc6.webp",
+      "thumbnail": "art/thumbnails/a9b8e9c2-2384-4f9e-b159-50d4891bafc6.webp",
+      "year": "",
+      "medium": "",
+      "visible": true,
+      "featured": false,
+      "availability": "available",
+      "description": "Dio brando and Giorno Giovanna from Jojo's Bizarre Adventure, inspired by Nicole Dollanganger's song \"White Trashing\"."
+    },
+    {
       "id": "05807e8a-c1fc-425f-b42c-13af7668423c",
       "title": "I only exist for you.",
       "image": "art/uploads/05807e8a-c1fc-425f-b42c-13af7668423c.webp",
